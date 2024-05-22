@@ -367,7 +367,8 @@
                     </select>
                   </div>
                 </div>
-                <div id="chart"></div>
+                <div id="chart">
+                </div>
               </div>
             </div>
           </div>
@@ -633,7 +634,6 @@
     // Set an interval to check every minute (adjust as needed)
     setInterval(disableButtonAtFour, 300 * 1000); // 60 seconds * 1000 milliseconds
   </script>
-  <script src="{% static 'trading_tool/assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
 
   {% endblock %}
   <script>
@@ -748,16 +748,24 @@
         });
       });
     });
-  </script>
-  <script src="{% static 'trading_tool/assets/libs/jquery/dist/jquery.min.js' %}"></script>
-  <script src="{% static 'trading_tool/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'trading_tool/assets/js/sidebarmenu.js' %}"></script>
-  <script src="{% static 'trading_tool/assets/js/app.min.js' %}"></script>
-  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
-  <script src="{% static 'trading_tool/assets/libs/simplebar/dist/simplebar.js' %}"></script>
-  <script>
-    var positions_data = {{ positions_data|default:"{}" | safe }};
 </script>
+<script src="{% static 'trading_tool/assets/libs/jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'trading_tool/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'trading_tool/assets/js/sidebarmenu.js' %}"></script>
+<script src="{% static 'trading_tool/assets/js/app.min.js' %}"></script>
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script src="{% static 'trading_tool/assets/libs/simplebar/dist/simplebar.js' %}"></script>
+<script>
+  var positions_data = {{ positions_data|default:"{}" | safe }};
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="{% static 'trading_tool/assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script src="{% static 'trading_tool/assets/js/dashboard.js' %}"></script>
+
+
+
 
 
 

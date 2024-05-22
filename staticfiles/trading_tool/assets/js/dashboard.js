@@ -23,13 +23,6 @@ $(function () {
     return position.symbol.slice(-7);
   });
 
-
-
-
-
-
-
-
   // Sort the array in ascending order
   realized_profits.sort(function(a, b) {
     return a - b;

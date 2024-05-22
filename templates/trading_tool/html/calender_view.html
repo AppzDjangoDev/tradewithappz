@@ -100,11 +100,18 @@
                                 <div class="mb-4">
                                     <div class="row">
                                         <div class="col-6 text-left">
-                                            <h5 class="card-title fw-semibold">Daily Log </h5>
+                                            <h5 class="card-title fw-semibold">Daily Log</h5>
                                         </div>
+                                        {% if date_wise_data %}
                                         <div class="col-6 text-right">
-                                            <button id="date-button"  class="btn btn-primary">{{ date_wise_data.trading_date|date:"Y-m-d" }}</button>
+                                            <button id="date-button"  class="btn btn-primary">{{date_wise_data.trading_date|date:"Y-m-d"}}</button>
                                         </div>
+                                        {% else %}
+                                        <div class="col-6 text-right">
+                                            <a href="{% url "sod_reporting_view" %}" class="btn btn-success mx-2">Report SOD</a>
+                                        </div>
+
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div id="order-history-table" class="table-responsive">
@@ -135,6 +142,8 @@
                                                     </th>
                                                 </tr>
                                             </thead>
+                                        {% endif %}
+                                        {% if date_wise_data %}
                                             <tbody id="data-table-body">
                                                 <tr>
                                                     <td class="border-bottom-0"><h6 class="fw-semibold mb-0">{{ date_wise_data.opening_balance }}</h6></td>
@@ -147,7 +156,7 @@
                                                 </tr>
                                             </tbody>
                                         {% else %}
-                                            <tbody>
+                                            <tbody id="data-table-body">
                                                 <tr>
                                                     <td colspan="4" class="text-center">Currently No data Found</td>
                                                 </tr>
@@ -342,7 +351,6 @@
         // Change the button color to a dark shade
         formattedDate = formatDate(date_str)
 
-        
         $.ajax({
             url: '{% url "fetch_date_data" %}',
             type: 'POST',
@@ -353,25 +361,28 @@
             success: function(response) {
                 console.log("======================");
                 console.log(response.data);
-                
+        
                 var tableBody = $('#data-table-body');
                 var dateButton = $('#date-button');
                 tableBody.empty(); // Clear existing data
-
+        
                 if (response.data) {
+                    console.log("oooooooooooooo", response.data.trading_date);
                     var data = response.data;
-                    dateButton.text(data.trading_date); // Update the button text
-
-                    var row = `
-                        <tr>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.opening_balance}</h6></td>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.closing_balance}</h6></td>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.day_order_count}</h6></td>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.day_p_and_l}</h6></td>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.actual_benefit}</h6></td>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.actual_expense}</h6></td>
-                            <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.notes || 'N/A'}</h6></td>
-                        </tr>`;
+                    var tradingDate = data.trading_date.split('-').reverse().join('-');
+                    console.log('datadata', formattedDate)
+                    dateButton.text(tradingDate); // Update the button text
+        
+                    var row = `<tr>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.opening_balance}</h6></td>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.closing_balance}</h6></td>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.day_order_count}</h6></td>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.day_p_and_l}</h6></td>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.actual_benefit}</h6></td>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.actual_expense}</h6></td>
+                                <td class="border-bottom-0"><h6 class="fw-semibold mb-0">${data.notes || 'N/A'}</h6></td>
+                              </tr>`;
+                    console.log("rowrow", row);
                     tableBody.append(row);
                 } else {
                     tableBody.append('<tr><td colspan="7" class="text-center day_box">Currently No data Found</td></tr>');
@@ -384,9 +395,10 @@
                 var dateButton = $('#date-button');
                 tableBody.empty(); // Clear existing data
                 tableBody.append('<tr><td colspan="7" class="text-center day_box">Currently No data Found</td></tr>');
-                dateButton.text(formattedDate); // Reset the button text
+                dateButton.text(date); // Reset the button text
             }
         });
+        
     }
 
     function parseDate(dateString) {

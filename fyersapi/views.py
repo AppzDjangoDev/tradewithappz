@@ -392,6 +392,8 @@ def update_data_instance(request):
                 'fund_data': fund_data,
                 'order_data': order_data
                 }  # Modify this according to your response structure
+        
+        print("datadatadata", data)
         return JsonResponse(data)
     else:
         return JsonResponse({'error': 'Access token not found'}, status=400)
@@ -730,16 +732,19 @@ class OrderHistory(LoginRequiredMixin, View):
             # If the request is AJAX, fetch the filter value and filter the queryset
 
             status_filter = request.GET.get('status', None)  # Assuming AJAX passes 'status' parameter for filtering
+            print("status_filterstatus_filter", status_filter)
          
             
             # Get the current page's data
             current_page_data = list(page_obj)
             filtered_data=[]
 
+            print("current_page_datacurrent_page_data", current_page_data)
+
             # Filter the current page's data based on the status
             if status_filter:
                 filtered_data = [order for order in current_page_data if order.get('status') == int(status_filter)]
-                #print("filtered_datafiltered_datafiltered_data", filtered_data)
+                print("filtered_datafiltered_datafiltered_data", filtered_data)
             else:
                 filtered_data = current_page_data
 
