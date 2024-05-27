@@ -37,8 +37,15 @@ class SOD_EOD_Data(models.Model):
     sod_status = models.BooleanField(default=False)
     eod_status = models.BooleanField(default=False)
 
-
 class TradingConfigurations(models.Model):
+    MANUAL = 'MANUAL'
+    AUTOMATIC = 'AUTOMATIC'
+    
+    ORDER_QUANTITY_MODE_CHOICES = [
+        (MANUAL, 'Manual'),
+        (AUTOMATIC, 'Automatic'),
+    ]
+    
     default_stoploss = models.IntegerField(default=0)  # Field for default stoploss
     default_order_qty = models.IntegerField(default=0)  # Field for default order quantity
     max_loss = models.IntegerField(default=0)  # Field for maximum loss
@@ -48,7 +55,12 @@ class TradingConfigurations(models.Model):
     trailing_to_top_points = models.IntegerField(default=0)  # Field for trailing to top points
     reverse_trailing_points = models.IntegerField(default=0)  # Field for reverse trailing points
     stoploss_limit_slippage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    
+    order_quantity_mode = models.CharField(
+        max_length=10,
+        choices=ORDER_QUANTITY_MODE_CHOICES,
+        default=MANUAL,
+    )
+
 
     def __str__(self):
         return f"Trading Configurations - ID: {self.pk}"

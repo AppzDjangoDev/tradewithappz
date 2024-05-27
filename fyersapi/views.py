@@ -943,11 +943,22 @@ def instantBuyOrderWithSL(request):
         data_instance = get_data_instance(request)
         der_symbol = request.POST.get('der_symbol')
         ex_symbol = request.POST.get('ex_symbol')
+        ltp = float(request.POST.get('ltp'))
         get_lot_count = get_deafult_lotsize(ex_symbol)
         # Retrieve default order quantity from trade configurations
         trade_config_data = TradingConfigurations.objects.first()
-        order_qty = trade_config_data.default_order_qty * get_lot_count
 
+        if trade_config_data.order_quantity_mode=="MANUAL":
+            order_qty = trade_config_data.default_order_qty * get_lot_count
+
+        if trade_config_data.order_quantity_mode=="AUTOMATIC":
+            print('**************************************', ltp)
+            per_lot_expense = ltp*get_lot_count
+            lotqty = float(trade_config_data.capital_usage_limit) // float(per_lot_expense)
+            order_qty = lotqty*get_lot_count
+            order_qty = int(order_qty)
+            print('**************************************', order_qty)
+            
         # Prepare order data for market buy order
         data = {
             "symbol": der_symbol,
@@ -962,8 +973,6 @@ def instantBuyOrderWithSL(request):
         # Place market buy order
         response = data_instance.place_order(data=data)
         #print("BUY ORDER RESPONSE :", response["code"])
-        response["code"] = 1101
-
         if response["code"] == 1101:
             # Fetch session variables
             try:

@@ -15,13 +15,13 @@
         <div class="card w-100" id="card_body" >
             <div class="card-body p-4 mb-4">
               <div class="d-flex justify-content-between align-items-center">
-                <p class="card-title fw-semibold fs-4" id="optitle">OPTION CHAIN</p>
                 <div class="d-flex align-items-center">
                 {% for option in options_data.data.optionsChain %}
                 {% if option.option_type == ""%}
                   <div  id="info_form" class="container-fluid pt-5">
                     <div class="row" >
                         <!-- Web View -->
+                        <p class="card-title fw-semibold fs-4" id="optitle">OPTION CHAIN</p>
                         <div class="col-lg-12 d-none d-lg-block">
                             <div class="row">
                                 <div class="col-md-3">
@@ -67,9 +67,6 @@
                 {% endfor %}
             </div>
         </div>
-
-
-
         <div class="container-fluid mt-2 ">
             <div class="row">   
             <div class="col-sm-6">
@@ -84,6 +81,8 @@
                         <div class="col-4  text-center">
                             <input type="hidden" name="der-symbol-{{option.symbol}}" value="{{ option.symbol }}">
                             <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
+                            <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
+
                             <h5 class="card-title text-muted fw-bolder mb-0">
                                 {% if option.serial_number == 1 %}
                                     <span style="color: #6a7dfb; font-size: 70%;">ITM&nbsp;2</span>
@@ -122,6 +121,7 @@
                             <div class="col-4 text-center">
                                 <input type="hidden" name="der-symbol-{{option.symbol}}" value="{{ option.symbol }}">
                                 <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
+                                <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
                                 <h5 class="card-title text-muted fw-bolder mb-0">
                                     {% if option.serial_number == 1 %}
                                         <span style="color: #6a7dfb; font-size: 70%;">ITM&nbsp;2</span>
@@ -153,9 +153,6 @@
             </div>
         </div>
         </div>
-
-
-
     </div>
 </div>
 
@@ -173,11 +170,10 @@
             
             // Get the value of the hidden input field
             var derSymbol = $(this).closest('.alert').find('input[name="opt-symbol"]').val();
+            var ltp = $(this).closest('.alert').find('input[name="opt-ltp"]').val();
             
             // Get the value of ex_symbol and ltp fields
             var exSymbol = $('input[name="ex_symbol"]').val();
-            var ltp = $('input[name="ltp"]').val();
-            
             // Get CSRF token
             var csrfToken = $('meta[name="csrf-token"]').attr('content');
             
@@ -293,6 +289,8 @@
 
 
 
+
+
 <script>
     // Function to send message to server before page unload
     function sendMessageBeforeUnload() {
@@ -308,14 +306,23 @@
         
         // Event handler for receiving messages from the new WebSocket server connection
         socket.onmessage = function(event) {
+            // console.log("Received message:", event.data);
+            var optionsChain = {{ options_data.data.optionsChain|safe }};
+            var symbolList = [];
+
+            // Loop through optionsChain and extract symbols
+            for (var i = 0; i < optionsChain.length; i++) {
+                symbolList.push(optionsChain[i].symbol);
+            }
             var message = event.data;
-            updateData(message);
+            updateData(message, symbolList);
         };
     }
 
     // Function to update the data container with the received message
-    function updateData(message) {
+    function updateData(message, symbolList) {
         // Show spinner initially
+        // Print the list of symbols
         var dataContainer = document.getElementById("data-index");
         var messageElement = document.querySelector('#index'); // Selecting the existing h1 element
         message = message.replace(/'/g, '"');
@@ -338,6 +345,12 @@
             // Handle the case when message type is 'sf'
             // console.log("Type is 'sf'.");
             var symbol = message['symbol'];
+            if (!symbolList.includes(symbol)) {
+                console.log('-----------------------symbolList', symbolList)
+                console.log("**********************symbol", symbol);
+                // Refresh the page
+                location.reload();
+            }
             // Retrieve the hidden input value if it exists
             var hiddenSymbolInput = document.querySelector('input[name="der-symbol-' + symbol + '"]');
             var hiddenSymbol = hiddenSymbolInput ? hiddenSymbolInput.value : null;
@@ -418,8 +431,15 @@
     // Event handler for receiving messages from the WebSocket server
     socket.onmessage = function(event) {
         // console.log("Received message:", event.data);
+        var optionsChain = {{ options_data.data.optionsChain|safe }};
+        var symbolList = [];
+
+        // Loop through optionsChain and extract symbols
+        for (var i = 0; i < optionsChain.length; i++) {
+            symbolList.push(optionsChain[i].symbol);
+        }
         var message = event.data;
-        updateData(message);
+        updateData(message, symbolList);
     };
 
     // Close the WebSocket connection when the page is unloaded (refreshed or navigated away)
