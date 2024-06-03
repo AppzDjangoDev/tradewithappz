@@ -422,8 +422,12 @@ class EOD_ReportingView(LoginRequiredMixin, FormView):
         total_order_status = sum(1 for order in order_data["orderBook"] if order["status"] == 2)
         total_balance = 0
         realised_profit = 0
-        total_order_status = 0 
-        default_brokerage = settings.DEFAULT_BROKERAGE
+        total_order_status = 0  
+        confData = TradingConfigurations.objects.first()
+        cost = confData.capital_usage_limit
+        tax = calculate_tax(cost)
+        default_brokerage = settings.DEFAULT_BROKERAGE + tax
+        # default_brokerage = settings.DEFAULT_BROKERAGE
         exp_brokerage = default_brokerage * total_order_status
 
         for item in fund_data.get('fund_limit', []):
@@ -774,6 +778,14 @@ class TransactionHistory(LoginRequiredMixin, View):
         context['get_transaction_data'] = get_transaction_data
         return render(request, 'trading_tool/html/transaction_history.html', context)
 
+def calculate_tax(cost):
+    # Constants from the derived formula
+    a = 0.000732
+    b = 3.962
+    
+    # Calculate the tax
+    tax = a * cost + b
+    return tax
 
 class OptionChainView(LoginRequiredMixin, View):
     login_url = '/login'
@@ -785,12 +797,36 @@ class OptionChainView(LoginRequiredMixin, View):
         confData = TradingConfigurations.objects.first()
         forward_trailing_points = confData.forward_trailing_points
         reverse_trailing_points = confData.reverse_trailing_points
+        cost = confData.capital_usage_limit
+        stoploss_percentage = confData.default_stoploss
+
+
         data = {
             "symbol": "NSE:" + slug + "-INDEX",
             "strikecount": 2,
         }
         try:
             expiry_response = data_instance.optionchain(data=data)
+            order_data = data_instance.orderbook()
+            total_order_status = sum(1 for order in order_data["orderBook"] if order["status"] == 2)
+            positions_data = data_instance.positions() 
+            # print('fund_datafund_data', fund_data)
+            # for item in fund_data.get('fund_limit', []):
+            #     if item.get('title') == 'Total Balance':
+            #         total_balance = item.get('equityAmount')
+            #     if item.get('title') == 'Realized Profit and Loss':
+            #         realised_profit = item.get('equityAmount')
+            #         print('realised_profitrealised_profit', realised_profit)
+            #         break
+
+            tax = calculate_tax(cost)
+            default_brokerage = settings.DEFAULT_BROKERAGE + tax
+            print('default_brokeragedefault_brokerage', default_brokerage)
+            exp_brokerage = default_brokerage * total_order_status
+            trading_config = TradingConfigurations.objects.first()
+            order_limit =  trading_config.max_trade_count
+            exp_brokerage_limit = order_limit*default_brokerage
+            # sat
             first_expiry_ts = expiry_response['data']['expiryData'][0]['expiry']
             first_expiry_date = expiry_response['data']['expiryData'][0]['date']
         except (KeyError, AttributeError, IndexError) as e:
@@ -846,8 +882,22 @@ class OptionChainView(LoginRequiredMixin, View):
         # Add serial numbers to the sorted list
         ce_options_with_serial = []    
         # #print the modified data
-        for option in ce_options_sorted:
+        # for option in ce_options_sorted:
+        #     ce_options_with_serial.append(option)
+
+
+        for option in reversed(ce_options_sorted):
             ce_options_with_serial.append(option)
+
+
+        actual_profit = float(positions_data['overall']['pl_realized']) - float(exp_brokerage)
+        actual_profit = round(actual_profit, 2)
+
+        reward_ratio = confData.reward_ratio
+
+        exp_loss = (cost*stoploss_percentage)/100
+        exp_profit_percenatge = stoploss_percentage*reward_ratio
+        exp_profit = (cost*exp_profit_percenatge)/100
 
         # #print("**************************************")
         # #print(ce_options_with_serial)
@@ -858,6 +908,16 @@ class OptionChainView(LoginRequiredMixin, View):
         context['ce_options_with_serial'] = ce_options_with_serial
         context['pe_options_with_serial'] = pe_options_with_serial
         context['expiry_response'] = first_expiry_date
+        context['positions_data'] = positions_data
+        context['order_limit'] = order_limit
+        context['exp_brokerage_limit'] = exp_brokerage_limit
+        context['day_exp_profit'] = exp_brokerage_limit * reward_ratio
+        context['exp_loss'] = exp_loss
+        context['exp_profit'] = exp_profit
+
+        context['total_order_status'] = total_order_status
+        context['day_exp_brokerage'] = exp_brokerage
+        context['actual_profit'] = actual_profit
         context['options_data'] = response
         return render(request, template, context)
 
@@ -934,6 +994,8 @@ def get_deafult_lotsize(index):
         return 15
     elif index == 'NIFTY':
         return 25
+    elif index == 'SENSEX':
+        return 10
     else:
         return False
 
@@ -954,11 +1016,16 @@ def instantBuyOrderWithSL(request):
         if trade_config_data.order_quantity_mode=="AUTOMATIC":
             print('**************************************', ltp)
             per_lot_expense = ltp*get_lot_count
+            print('per_lot_expenseper_lot_expense', per_lot_expense)
             lotqty = float(trade_config_data.capital_usage_limit) // float(per_lot_expense)
             order_qty = lotqty*get_lot_count
             order_qty = int(order_qty)
             print('**************************************', order_qty)
-            
+            if order_qty == 0:
+                message = "Insufficient capital Limit"
+                return JsonResponse({'response': message})
+
+                        
         # Prepare order data for market buy order
         data = {
             "symbol": der_symbol,
@@ -982,9 +1049,6 @@ def instantBuyOrderWithSL(request):
                 open_qty = None
                 open_traded_price = None
 
-
-
-            
             # Check if there's an existing pending order with status 6 for the same symbol
             allOrderData = data_instance.orderbook()
             order_with_status_6 = next((order for order in allOrderData["orderBook"] if order['status'] == 6 and order["symbol"] == der_symbol), None)
@@ -1006,7 +1070,7 @@ def instantBuyOrderWithSL(request):
                 traded_price = order_details["tradedPrice"]
            
                 # Calculate stop-loss and limit price
-                default_stoploss = trade_config_data.default_stoploss
+                default_stoploss = float(trade_config_data.default_stoploss)
                 stoploss_limit_slippage = trade_config_data.stoploss_limit_slippage
                 stoploss_price = traded_price - (traded_price * default_stoploss / 100)
                 stoploss_price = round(stoploss_price / 0.05) * 0.05
@@ -1032,10 +1096,7 @@ def instantBuyOrderWithSL(request):
                 total_purchase_value = open_traded_price * order_qty 
                 exp_stoploss_value = StopLossCalculator(total_purchase_value, default_stoploss)
                 exp_stoploss_amount = total_purchase_value - exp_stoploss_value
-                
-
-
-
+          
                 # Update session variables
                 if open_qty is not None and open_traded_price is not None:
                     open_qty += int(order_qty)
@@ -1046,11 +1107,6 @@ def instantBuyOrderWithSL(request):
                         total_purchase_value = open_traded_price * open_qty
                         exp_stoploss_value = StopLossCalculator(total_purchase_value, default_stoploss)
                         exp_stoploss_amount = total_purchase_value - exp_stoploss_value
-
-
-
-                    
-
 
 
                     # Store updated values back to session
@@ -1075,8 +1131,8 @@ def instantBuyOrderWithSL(request):
                 else:
                     return JsonResponse({'response': stoploss_order_response["message"]})
         elif response["code"] == -99:
-            message = "Insufficient Fund"
-            return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty , 'traded_price': traded_price, 'code': response["code"]})
+            print('responseresponseresponseresponse', response)
+            return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
         else:
             return JsonResponse({'response': response["message"]})
     else:
@@ -1129,16 +1185,13 @@ def trailingwithlimit(request):
             # Check if there are orders to cancel
             if existing_stop_price is not None:
                 # Modify the order with new stop and limit prices
-                data = {"id": order["id"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
+                data = {"id": order["id"],  "type": order["type"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
                 trailing_order_update = fyers.modify_order(data=data)
                 
                 # Check the response
                 if 'message' in trailing_order_update:
                     message = trailing_order_update['message']
                     messages.success(request, message)
-
-
-
                     return JsonResponse({'message': message})
         
         # Handle the case where 'data' key is missing
@@ -1182,7 +1235,7 @@ def trailingtodown(request):
             # Check if there are orders to cancel
             if existing_stop_price is not None:
                 # Modify the order with new stop and limit prices
-                data = {"id": order["id"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
+                data = {"id": order["id"], "type": order["type"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
                 trailing_order_update = fyers.modify_order(data=data)
                 
                 # Check the response

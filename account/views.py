@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import redirect, render
 from account.forms import UserLoginForm, UserprofileUpdate
 from django.contrib import auth
@@ -13,7 +14,7 @@ from django.db.models import Sum
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from fyersapi.models import TradingConfigurations, TradingData
-from fyersapi.views import brokerconnect, get_accese_token_store_session, get_data_instance
+from fyersapi.views import brokerconnect, calculate_tax, get_accese_token_store_session, get_data_instance
 from .forms import CustomUserCreationForm
 from django.contrib.auth import authenticate, login
 from decimal import Decimal
@@ -79,8 +80,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         self.total_order_status = 0
         self.pending_orders_status_6 = 0
+        confData = TradingConfigurations.objects.first()
+        cost = confData.capital_usage_limit
         self.expected_brokerage = 0 
-        average_brokerage = 30
+        tax = calculate_tax(cost)
+        default_brokerage = settings.DEFAULT_BROKERAGE + tax
         self.recent_order_data = []
         trading_config = TradingConfigurations.objects.first()
         # #print("self.order_limitself.order_limit", self.order_limit) 
@@ -103,7 +107,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
             self.progress_percentage = (self.total_order_status / self.order_limit) * 100
             self.progress_percentage = round(self.progress_percentage, 1)
-        self.expected_brokerage = self.total_order_status * average_brokerage
+        self.expected_brokerage = self.total_order_status * default_brokerage
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

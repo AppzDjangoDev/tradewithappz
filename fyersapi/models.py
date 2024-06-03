@@ -46,8 +46,9 @@ class TradingConfigurations(models.Model):
         (AUTOMATIC, 'Automatic'),
     ]
     
-    default_stoploss = models.IntegerField(default=0)  # Field for default stoploss
+    default_stoploss = models.DecimalField(max_digits=7, decimal_places=2, default=0)  # Field for default stoploss
     default_order_qty = models.IntegerField(default=0)  # Field for default order quantity
+    reward_ratio = models.IntegerField(default=0)
     max_loss = models.IntegerField(default=0)  # Field for maximum loss
     max_trade_count = models.IntegerField(default=0)  # Field for maximum trade count
     capital_usage_limit = models.IntegerField(default=0)  # Field for capital usage limit

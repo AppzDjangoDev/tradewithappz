@@ -81,6 +81,14 @@
                   <span class="hide-menu">NIFTY</span>
                 </a>
               </li>
+              {% comment %} <li class="sidebar-item" disabled>
+                <a class="sidebar-link" href="{% url 'options_chain_view' slug='SENSEX' %}" aria-expanded="false">
+                  <span>
+                    <i class="ti ti-file-description"></i>
+                  </span>
+                  <span class="hide-menu">SENSEX</span>
+                </a>
+              </li> {% endcomment %}
               <li class="nav-small-cap">
                 <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
                 <span class="hide-menu">REPORT</span>
@@ -678,14 +686,12 @@
     $(document).ready(function() {
     $('#trailingtodown').click(function(e) {
         e.preventDefault();
-        console.log('Position closed successfully.');
 
         $.ajax({
             type: 'GET',  // Adjust the request type as needed
             url: '{% url "trailingtodown" %}',
             success: function(response) {
                 // Handle success response if needed
-                console.log('Position closed successfully.', response.message);
                 swal({
                   position: "top-end",
                   icon: "success",
@@ -716,14 +722,12 @@
     $(document).ready(function() {
     $('#trailingtotop').click(function(e) {
         e.preventDefault();
-        console.log('Position closed successfully.');
 
         $.ajax({
             type: 'GET',  // Adjust the request type as needed
             url: '{% url "trailingtotop" %}',
             success: function(response) {
                 // Handle success response if needed
-                console.log('Position closed successfully.', response.message);
                 swal({
                   position: "top-end",
                   icon: "success",
