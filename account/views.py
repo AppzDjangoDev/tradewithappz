@@ -15,6 +15,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from fyersapi.models import TradingConfigurations, TradingData
 from fyersapi.views import brokerconnect, calculate_tax, get_accese_token_store_session, get_data_instance
+from scheduler.scheduler import automate_sod_task, automate_eod_task
 from .forms import CustomUserCreationForm
 from django.contrib.auth import authenticate, login
 from decimal import Decimal
@@ -58,6 +59,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # Delay the execution of get_access_token function by 1 second
         time.sleep(1)
         get_accese_token_store_session(request)
+        automate_sod_task()
         access_token = request.session.get('access_token')
         data_instance = get_data_instance(request)
         try:
@@ -80,13 +82,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         self.total_order_status = 0
         self.pending_orders_status_6 = 0
-        confData = TradingConfigurations.objects.first()
-        cost = confData.capital_usage_limit
+        confData = TradingConfigurations.objects.order_by('-last_updated').first()
+        cost = confData.capital_limit_per_order
         self.expected_brokerage = 0 
         tax = calculate_tax(cost)
         default_brokerage = settings.DEFAULT_BROKERAGE + tax
         self.recent_order_data = []
-        trading_config = TradingConfigurations.objects.first()
+        trading_config = TradingConfigurations.objects.order_by('-last_updated').first()
         # #print("self.order_limitself.order_limit", self.order_limit) 
         #  trading_config.max_trade_count
         self.order_limit =  trading_config.max_trade_count
@@ -143,6 +145,7 @@ class UserloginView(View):
     def logoutUser(self, request):  # Make sure to include `self` as the first parameter for methods in a class
         #print("logout_processing")
         logout(request)
+        automate_eod_task()
         messages.success(request, "Logout Successful !")
         return redirect('login')
 

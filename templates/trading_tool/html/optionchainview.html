@@ -22,7 +22,7 @@
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background-color: #007bff;
+        background-color: #3597fff7;
         color: white;
         display: flex;
         align-items: center;
@@ -40,45 +40,61 @@
         font-weight: bold; /* Apply bold weight */
     }
 
+
+
+      
+      input {
+        margin-top: 3rem;
+      }
+      
+      .bar {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        width: 2rem;
+        height: 20rem;
+        border-radius: 5px;
+        background-color: lightblue;
+        margin: 0 auto;
+      }
+      
+      .filler {
+        position: relative;
+        border-radius: 5px;
+        background-color: cornflowerblue;
+      }
+      
+      .percent {
+        position: absolute;
+        top: 20%;
+        font-size: 0.65rem;
+        width: 100%;
+        text-align: center;
+      }
+
 </style>
 <div class="container-fluid" style="max-width: initial;">
   <div class="row">
     <div class="col-lg-12 col-sm-12 d-flex align-items-stretch">
         <div class="card w-100" id="card_body" >
-            <div class="card-body p-4 mb-2">
-              <div class="d-flex justify-content-between align-items-center">
+            <div class="card-body p-1 pt-4">
+              <div class="col-12 justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
                 {% for option in options_data.data.optionsChain %}
                 {% if option.option_type == ""%}
                   <div  id="info_form" class="container-fluid pt-5">
-                    <div class="row" >
+                    <div class="row mt-5" >
                         <!-- Web View -->
                         <p class="card-title fw-semibold fs-4" id="optitle">OPTION CHAIN</p>
-                        <div class="col-lg-12 d-none d-lg-block">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <input class="form-control my-3" disabled name="expiry" value="{{expiry_response}}">
-                                </div>
-                                <div class="col-md-3">
-                                    <input class="form-control my-3" disabled name="ex_symbol" value="{{ option.ex_symbol }}">
-                                </div>
-                                <div class="col-md-3">
-                                    
-                                    <input class="form-control my-3" disabled name="ltp" value="{{ option.ltp }}">
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Mobile View -->
-                        <div class="col-12 d-block d-lg-none pt-5">
-                            <div class="row mt-3">
-                                <div class="col-12 mt-5">
-                                    <input class="form-control mt-5 " disabled name="expiry" value="{{expiry_response}}">
+                            <div class="row mt-3" style="padding-inline:0px; margin:0px;" >
+                                <div class="col-12">
+                                    <input class="form-control fw-bolder fs-5 mt-5 " disabled name="expiry" value="{{expiry_response}}">
                                 </div>
                                 <div class="col-6">
-                                    <input class="form-control my-2" disabled name="ex_symbol" value="{{ option.ex_symbol }}">
+                                    <input class="form-control fw-bolder fs-5 my-2" disabled name="ex_symbol" value="{{ option.ex_symbol }}">
                                 </div>
                                 <div class="col-6" id="index-cont" >
-                                    <input class="form-control my-2" id="index" disabled name="ltp" value="0">
+                                    <input class="form-control fw-bolder fs-5 my-2" id="index" disabled name="ltp" value="0">
                                 </div>
                             </div>
                             <div class="row" style="margin: 0px;">
@@ -86,26 +102,26 @@
                                     <div style="height:55px; margin-right:5px!important;" role="alert" class="alert alert-danger d-flex flex-row justify-content-between align-items-center p-0 m-0">
                                         <p id="exp_stoploss_amount" style="margin-left:20px; font-size:16px;" class="mb-0 fw-bolder">Exp Loss: &nbsp;&nbsp;{{exp_loss}}</p>
                                     </div>
-                                    
-                                    {% comment %} <div class="col-4">
-                                        <button id="refresh_page" class="btn btn-primary btn-md my-1 h-150" style="border-radius: 6px;">Refresh</button>
-                                    </div> {% endcomment %}
                                 </div>
                                 <div class="col-6 mt-1" style="padding: 0px;">
                                     <div style="height:55px; margin-left:5px!important;" role="alert" class="alert alert-success d-flex flex-row justify-content-between align-items-center p-0 m-0">
                                         <p id="exp_profit_amount" style="margin-left:20px; font-size:16px;" class="mb-0 fw-bolder">Exp Profit: &nbsp;&nbsp;{{exp_profit}}</p>
                                     </div>
-                                    
-                                    {% comment %} <div class="col-4">
-                                        <button id="refresh_page" class="btn btn-primary btn-md my-1 h-150" style="border-radius: 6px;">Refresh</button>
-                                    </div> {% endcomment %}
-                                </div>
-
-                                <div class="col-6">
-                                    
                                 </div>
                             </div>
-                            
+                            <div class="container-fluid my-2 pt-4">
+                                <div class="row">
+                                    <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
+                                        <button id="switch_scalp_mode" class="btn btn-dark  spinner btn-lg btn-block w-100 h-100 fw-bold" style="border-radius: 10px;">CHECKING..</button>
+                                    </div>
+                                    <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
+                                        <button  id="trailingwithlimit" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-up text-success"></i>{{forward_trailing_points}}</button>
+                                    </div>   
+                                    <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
+                                        <button id="trailingtodown" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-down text-warning"></i>{{reverse_trailing_points}}</button>
+                                    </div>
+                                </div>
+                            </div> 
                         </div>
                     </div>
                 </div>
@@ -114,61 +130,61 @@
             </div>
         </div>
 
-        <div class="col-sm-6 my-2">
-            {% for option in ce_options_with_serial %}
-            {% if option.option_type == "CE"%}
-                <div class="alert alert-success" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
-                    <div class="row">
-                        <div class="col-4 d-flex justify-content-center align-items-center">
-                            <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder buy-button" style="border-radius: 6px">Buy</button>
-                        </div>
-
-                        <div class="col-4  text-center">
-                            <input type="hidden" name="der-symbol-{{option.symbol}}" value="{{ option.symbol }}">
-                            <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
-                            <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
-
-                            <h5 class="card-title text-muted fw-bolder mb-0">
-                                {% if option.serial_number == 1 %}
-                                    <span style="color: #6a7dfb; font-size: 70%;">ITM&nbsp;2</span>
-                                {% elif option.serial_number == 2 %}
-                                    <span style="color: #6a7dfb; font-size: 70%;">ITM&nbsp;1</span>
-                                {% elif option.serial_number == 3 %}
-                                    <span style="color: white; background-color: #6a7dfb; font-size: 70%;">----ATM----</span>
-                                {% elif option.serial_number == 4 %}
-                                    <span style="color: #6a7dfb; font-size: 70%;">OTM&nbsp;1</span>
-                                {% elif option.serial_number == 5  %}
-                                    <span style="color: #6a7dfb; font-size: 70%;">OTM&nbsp;2</span>
-                                {% endif %}
-                                <br>
-                                CE&nbsp;{{ option.strike_price }}
-                            </h5>
-                            
-                            <p class="card-text fs-4 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
-
-                        </div>
-                        <div class="col-4 d-flex justify-content-center align-items-center">
-                            <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder sell-button" style="border-radius: 6px">Sell</button>
-                        </div>
-                    </div>
-                </div>        
-                {% endif %}
-            {% endfor %}
-            </div>
 
             
-        <div class="container-fluid">
-            <div class="row mt-3">   
 
-                {% comment %} and option.serial_number != 4  and option.serial_number != 5 {% endcomment %}
 
+        <div class="container-fluid m-0">
+            <div class="row mt-1">   
+                {% comment %} and option.serial_number != 4   {% endcomment %}
+                <div class="col-sm-6 my-1">
+                    {% for option in ce_options_with_serial %}
+                    {% if option.option_type == "CE"  %}
+                        <div class="alert alert-success" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
+                            <div class="row">
+                                <div class="col-4 d-flex justify-content-center align-items-center">
+                                    {% comment %} {% if option.serial_number == 5 %}warning{% else %}success{% endif %} {% if option.serial_number == 5 %} disabled {% endif %} {% endcomment %}
+                                    <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button"  style="border-radius: 6px">Buy</button>
+                                </div>
+        
+                                <div class="col-4  text-center">
+                                    <input type="hidden" name="der-symbol-{{option.symbol}}" value="{{ option.symbol }}">
+                                    <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
+                                    <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
+        
+                                    <h5 class="card-title text-muted fw-bolder mb-0">
+                                        {% if option.serial_number == 1 %}
+                                            <span style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        {% elif option.serial_number == 2 %}
+                                            <span style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        {% elif option.serial_number == 3 %}
+                                            <span style="color: white; background-color: #0065d0f7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        {% elif option.serial_number == 4 %}
+                                            <span style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;OTM&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        {% elif option.serial_number == 5  %}
+                                            <span  style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;OTM&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        {% endif %}
+                                        <br>
+                                        <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;CE&nbsp;&nbsp;{{ option.strike_price }}</p>
+                                    </h5>
+                                    <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }} - {{ option.lot_cost }}</p>
+                                </div>
+                                <div class="col-4 d-flex justify-content-center align-items-center">
+                                    <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
+                                </div>
+                            </div>
+                        </div>        
+                        {% endif %}
+                    {% endfor %}
+                    </div>
             <div class="col-sm-6 my-2">
                 {% for option in pe_options_with_serial %}
                 {% if option.option_type == "PE"  %}
                     <div class="alert alert-danger" role="alert"  style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
                         <div class="row">
                             <div class="col-4 d-flex justify-content-center align-items-center">
-                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder buy-button" style="border-radius: 6px">Buy</button>
+                                {% comment %} <button class="btn btn-{% if option.serial_number == 5 %}warning{% else %}success{% endif %} btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button"  {% if option.serial_number == 5 %} disabled {% endif %} style="border-radius: 6px">Buy</button> {% endcomment %}
+                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button"  style="border-radius: 6px">Buy</button>
                             </div>
                             <div class="col-4 text-center">
                                 <input type="hidden" name="der-symbol-{{option.symbol}}" value="{{ option.symbol }}">
@@ -176,32 +192,30 @@
                                 <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
                                 <h5 class="card-title text-muted fw-bolder mb-0">
                                     {% if option.serial_number == 1 %}
-                                        <span style="color: #6a7dfb; font-size: 70%;">ITM&nbsp;2</span>
+                                        <span style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;</span>
                                     {% elif option.serial_number == 2 %}
-                                        <span style="color: #6a7dfb; font-size: 70%;">ITM&nbsp;1</span>
+                                        <span style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;</span>
                                     {% elif option.serial_number == 3 %}
-                                        <span style="color: white; background-color: #6a7dfb; font-size: 70%;">----ATM----</span>
+                                        <span style="color: white; background-color: #0065d0f7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                     {% elif option.serial_number == 4 %}
-                                        <span style="color: #6a7dfb; font-size: 70%;">OTM&nbsp;1</span>
+                                        <span style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;OTM&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;</span>
                                     {% elif option.serial_number == 5  %}
-                                        <span style="color: #6a7dfb; font-size: 70%;">OTM&nbsp;2</span>
+                                        <span  style="color: white; background-color: #3597fff7; padding:4px; margin-bottom:10px; border-radius:10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;OTM&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;</span>
                                     {% endif %}
                                     <br>
-                                    PE&nbsp;{{ option.strike_price }}
+                                    {% comment %} PE&nbsp;{{ option.strike_price }} {% endcomment %}
+                                    <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;PE&nbsp;&nbsp;{{ option.strike_price }}</p>
                                 </h5>
-                                <p class="card-text fs-4 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP:  {{ option.ltp }}</p>
-
+                                <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }} - {{ option.lot_cost }}</p>
                             </div>
                             <div class="col-4 d-flex justify-content-center align-items-center">
-                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder sell-button" style="border-radius: 6px">Sell</button>
+                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
                             </div>
                         </div>
                     </div>
                 {% endif %}
             {% endfor %}
             </div>
-
-
             </div>
             </ul>
             </div>
@@ -241,6 +255,12 @@
                                     </div>
                                 </div>
                                 </div>
+                                <div class=" align-items-center">
+                                    <div class="progress" style="height: 32px;">
+                                      <div class="progress-bar {% if progress_percentage < 50 %}bg-success{% elif progress_percentage <= 80 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ total_order_status }}" aria-valuemin="0" aria-valuemax="{{ order_limit }}">
+                                          <span class="text-dark">{{ progress_percentage|floatformat:2 }}</span>
+                                      </div>
+                                  </div>
                             </div>
                             </div>
                         </div>
@@ -278,9 +298,50 @@
                             </div>
                         </div>
                         </div> 
-                </div>
+                    </div>
             </div>
         </div>
+    </div>
+
+    
+
+
+        
+
+    {% comment %} <div class="container-fluid ">
+        <div class="row ">
+        <div class="col-sm-6 col-xl-12">
+            <div class="card">
+              <div class="card-body">
+                <div class="row alig n-items-start">
+                  <div class="col-8">
+                    <h5 class="card-title mb-9 fw-semibold">Orders Limit</h5>
+                    <h4 id="total_order_status" class="fw-semibold">{{order_limit}}</h4>
+                    <div class=" align-items-center">
+                      <div class="progress" style="height: 32px;">
+                        <div class="progress-bar {% if progress_percentage < 50 %}bg-success{% elif progress_percentage <= 80 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ total_order_status }}" aria-valuemin="0" aria-valuemax="{{ order_limit }}">
+                            <span class="text-dark">{{ progress_percentage|floatformat:2 }}%</span>
+                        </div>
+                    </div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="d-flex justify-content-end">
+                      <div
+                        class="text-white bg-secondary rounded-circle p-6 d-flex align-items-center justify-content-center">
+                        <i class="ti ti-currency-dollar fs-6"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div> 
+
+        </div>
+    </div> {% endcomment %}
+
+
 
     <!-- Floating Action Button -->
     <button id="refresh_page" class="fab">
@@ -295,6 +356,53 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
 <script>
     $(document).ready(function() {
+        function fetchData() {
+            // Get the current date and time
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            
+            // Check if the current time is within the allowed range (9:15 AM to 3:30 PM)
+            
+                $.ajax({
+                    url: '{% url "update_data_instance" %}',
+                    type: 'GET',
+                    success: function(response) {
+                        // Handle the response data here
+                        console.log('ppppppppppppppppppppppppppppppppppppps', response);
+                        
+                        // Update total_order_status and order_limit
+                        var totalOrderStatus = response.total_order_status;
+                        console.log('totalOrderStatus', totalOrderStatus)
+                        var orderLimit = {{ order_limit }};
+                        
+                        // Update the total order status in the h4 element
+                        $('#total_order_status').text(totalOrderStatus + ' / ' + orderLimit);
+                        
+                        // Calculate progress percentage
+                        var progressPercentage = (totalOrderStatus / orderLimit) * 100;
+                        
+                        // Update the progress bar
+                        $('.progress-bar').css('width', progressPercentage + '%');
+                        $('.progress-bar').attr('aria-valuenow', totalOrderStatus);
+                        $('.progress-bar .text-dark').text(progressPercentage.toFixed(2) + '%');
+                        
+                        // Determine the color of the progress bar
+                        if (progressPercentage < 50) {
+                            $('.progress-bar').addClass('bg-success').removeClass('bg-warning bg-danger');
+                        } else if (progressPercentage <= 80) {
+                            $('.progress-bar').addClass('bg-warning').removeClass('bg-success bg-danger');
+                        } else {
+                            $('.progress-bar').addClass('bg-danger').removeClass('bg-success bg-warning');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching data:', error);
+                    }
+                });
+            
+        }
+        fetchData()
 
         refreshButton.innerHTML = '<div class="spinner-border text-light" role="status"></div>';
         // =======================================================================================================================================
@@ -312,6 +420,9 @@
             // Get CSRF token
             var csrfToken = $('meta[name="csrf-token"]').attr('content');
             
+
+           
+            
             // Make AJAX request
             $.ajax({
                 type: 'POST',  // Adjust the request type as needed
@@ -325,28 +436,32 @@
                 success: function(response) {
                     // Handle success response if needed
                     // console.log('AJAX request successful.', response);
+                    //document.getElementById('openOrderData').innerHTML = 'POSITIONS:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + derSymbol + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BUY PRICE :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nb ' ltp;
                     swal({
                         position: "top-end",
                         icon: "success",
                         title: response.response,
                         showConfirmButton: false,
-                        timer: 500,
+                        timer: 600,
                         
                     });  
                     fetchSessionDataAndUpdateUI();
                     reconnectWebSocket();
+                    fetchData()
         // ====================================================================================================================
                    
                 },
                 error: function(xhr, status, error) {
                     // Handle error response if needed
                     console.error('AJAX request failed.', error);
+                    fetchSessionDataAndUpdateUI();
+                    fetchData()
                     swal({
                         position: "top-end",
                         icon: "error",
                         title: "some error occurred!",
                         showConfirmButton: false,
-                        timer: 500,
+                        timer: 600,
                         
                     });
                 }
@@ -374,7 +489,7 @@
                         icon: "success",
                         title: response.message,
                         showConfirmButton: false,
-                        timer: 500,
+                        timer: 600,
                         
                     });
                     console.log('Session data removed successfully.', response);
@@ -385,22 +500,27 @@
                     document.querySelector('input[name="open-qty"]').value = '';
                     document.querySelector('input[name="open-symbol"]').value = '';
                     document.querySelector('input[name="open-traded-price"]').value = '';
-                    document.getElementById('openPlData').innerHTML = 'No positions';
+                    document.getElementById('openPlData').innerHTML = 'P&L DATA &nbsp;: &nbsp; &nbsp; No Positions';
+                    document.getElementById('openAmountData').innerHTML = 'DEPLOYED  &nbsp;: &nbsp; &nbsp; No Positions';
+                    document.getElementById('expLossAmount').innerHTML = 'POSITIONS &nbsp;: &nbsp; &nbsp; No Positions';
+                    document.getElementById('openOrderData').innerHTML = 'EXP LOSS  &nbsp;: &nbsp; &nbsp; No Positions';
                     //document.getElementById('exp_stoploss_amount').textContent = `Exp Loss: ${'0'}`;
                     //document.getElementById('plContainer').style.display = 'none';
                     fetchSessionDataAndUpdateUI();
                     reconnectWebSocket()
+                    fetchData()
                     
                 },
                 error: function(xhr, status, error) {
                     // Handle error response if needed
                     console.error('Failed to close position. Error:', error);
+                    fetchData()
                     swal({
                         position: "top-end",
                         icon: "error",
                         title: "some error occurred!",
                         showConfirmButton: false,
-                        timer: 500,
+                        timer: 600,
                         
                     });
                 }
@@ -527,7 +647,7 @@
                 }
 
                 // Update the innerHTML of openPlData element
-                document.getElementById('openPlData').innerHTML = 'P/L: ' + plDataFormatted + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LTP:' + ltpValue;
+                document.getElementById('openPlData').innerHTML = 'P/L:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp ' + plDataFormatted + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +  'LTP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + ltpValue;
                 // Check if plData is negative or positive
               
 
@@ -582,6 +702,7 @@
 
     // Close the WebSocket connection when the page is unloaded (refreshed or navigated away)
     window.addEventListener('unload', function() {
+
         socket.close();
     });
 
@@ -624,7 +745,7 @@
         // Make AJAX request to fetch session data
         $.ajax({
             type: 'GET',
-            url: '{% url "get_session_data" %}',  // URL to fetch session data
+            url: '{% url "get_open_temp_data" %}',  // URL to fetch session data
             success: function(response) {
                 // Check if session data exists
                 if (response.hasOwnProperty('open_symbol') && response.hasOwnProperty('open_qty') && response.hasOwnProperty('open_traded_price')) {
@@ -633,18 +754,32 @@
     
                     // Get the data from the response
                     var open_symbol = response.open_symbol;
+                    let modifiedString = open_symbol.replace("NSE:", "");
                     var open_qty = response.open_qty;
                     var open_traded_price = response.open_traded_price;
-                    var exp_stoploss_amount = response.exp_stoploss_amount
-                    console.log("open_qtyopen_qty", open_qty,"open_traded_price", open_traded_price , "open_symbol", open_symbol,'exp_stoploss_amount', exp_stoploss_amount)
+                    var total_order_amount = response.total_order_amount
+                    var exp_loss = response.exp_loss
+                    var sl_price  = response.sl_price
+                    function removeExpiryDate(symbol) {
+                        // Match the pattern: any characters, followed by exactly 5 digits, followed by 7 characters
+                        let pattern = /(.*)\d{5}(.......)/;
+                        let result = symbol.replace(pattern, '$1  $2');
+                        return result;
+                    }
+
+                    let modifiedString1 = removeExpiryDate(modifiedString);
+                    console.log("open_qtyopen_qty", open_qty,"open_traded_price", open_traded_price , "open_symbol", open_symbol,'total_order_amount', total_order_amount)
                     // Update the HTML elements with the retrieved data
                     // Assign values to the hidden input fields
                     document.querySelector('input[name="open-symbol"]').value = open_symbol;
                     document.querySelector('input[name="open-qty"]').value = open_qty;
                     document.querySelector('input[name="open-traded-price"]').value = open_traded_price;
-                    //document.getElementById('exp_stoploss_amount').textContent = `Exp Loss: ${exp_stoploss_amount}/${open_qty}`;
-                    
+                    document.getElementById('expLossAmount').innerHTML = 'M/L:&nbsp;&nbsp;&nbsp;&nbsp; ' + exp_loss + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +  'SL:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + sl_price;
+                    document.getElementById('openOrderData').innerHTML = 'QTY:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ' + open_qty + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +  'LTP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + open_traded_price;
 
+                    document.getElementById('openAmountData').innerHTML =  modifiedString1 + '&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+ total_order_amount + '&nbsp;&nbsp;INR' ;
+                    //document.getElementById('expLossAmount').innerHTML = 'EXP LOSS :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + exp_loss +'&nbsp;&nbsp;&nbsp;&nbsp;(' + sl_price +')';
+                    //document.getElementById('openOrderData').innerHTML = 'OPEN LTP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + open_qty  + '&nbsp;&nbsp;&nbsp;&nbsp;(' + open_traded_price  +')';
                 }
             },
             error: function(xhr, status, error) {
@@ -660,5 +795,186 @@
     //setInterval(fetchSessionDataAndUpdateUI, 1000);
     // ========================================================================================================================================
 </script>
+<script>
+    $(document).ready(function() {
+    $('#trailingwithlimit').click(function(e) {
+        e.preventDefault();
+        console.log('Position closed successfully.');
+
+        $.ajax({
+            type: 'GET',  // Adjust the request type as needed
+            url: '{% url "trailingwithlimit" %}',
+            success: function(response) {
+                // Handle success response if needed
+                console.log('Position closed successfully.', response.message);
+                fetchSessionDataAndUpdateUI();
+                swal({
+                  position: "top-end",
+                  icon: "success",
+                  title: response.message,
+                  showConfirmButton: false,
+                  timer: 4000
+                })
+               
+            },
+            error: function(xhr, status, error) {
+                // Handle error response if needed
+                console.error('Failed to close position. Error:', error);
+                swal({
+                  position: "top-end",
+                  icon: "error",
+                  title: "some error occured!",
+                  showConfirmButton: false,
+                  timer: 4000
+                })
+               
+            }
+        });
+    });
+  });
+</script>
+
+<script>
+  $(document).ready(function() {
+  $('#trailingtodown').click(function(e) {
+      e.preventDefault();
+
+      $.ajax({
+          type: 'GET',  // Adjust the request type as needed
+          url: '{% url "trailingtodown" %}',
+          success: function(response) {
+              fetchSessionDataAndUpdateUI();
+              // Handle success response if needed
+              swal({
+                position: "top-end",
+                icon: "success",
+                title: response.message,
+                showConfirmButton: false,
+                timer: 4000
+              })
+             
+          },
+          error: function(xhr, status, error) {
+              // Handle error response if needed
+              console.error('Failed to close position. Error:', error);
+              swal({
+                position: "top-end",
+                icon: "error",
+                title: "some error occured!",
+                showConfirmButton: false,
+                timer: 4000
+              })
+             
+          }
+      });
+    });
+  });
+</script>
+
+<script>
+  $(document).ready(function() {
+  $('#trailingtotop').click(function(e) {
+      e.preventDefault();
+
+      $.ajax({
+          type: 'GET',  // Adjust the request type as needed
+          url: '{% url "trailingtotop" %}',
+          success: function(response) {
+              // Handle success response if needed
+              fetchSessionDataAndUpdateUI();
+              swal({
+                position: "top-end",
+                icon: "success",
+                title: response.message,
+                showConfirmButton: false,
+                timer: 4000
+              })
+             
+          },
+          error: function(xhr, status, error) {
+              // Handle error response if needed
+              console.error('Failed to close position. Error:', error);
+              swal({
+                position: "top-end",
+                icon: "error",
+                title: "some error occured!",
+                showConfirmButton: false,
+                timer: 4000
+              })
+             
+          }
+      });
+    });
+  });
+</script>
+
+<script>
+    $(document).ready(function() {
+    $.ajax({
+        type: 'GET',  // Adjust the request type as needed
+        url: '{% url "get_scalp_mode_state" %}',  // URL for fetching the initial state
+        success: function(response) {
+            // Set the initial state of the button based on the response
+            if (response.scalping_mode) {
+                $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
+                document.getElementById('switch_scalp_mode').innerHTML="SCALP MODE"
+            } else {
+                $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
+                document.getElementById('switch_scalp_mode').innerHTML="NORMAL MODE"
+            }
+        },
+        error: function(xhr, status, error) {
+            // Handle error response if needed
+            console.error('Failed to fetch scalping mode state. Error:', error);
+            swal({
+                position: "top-end",
+                icon: "error",
+                title: "Failed to fetch scalping mode state!",
+                showConfirmButton: false,
+                timer: 500
+            });
+        }
+    });
+    $('#switch_scalp_mode').click(function(e) {
+        e.preventDefault();
+  
+        $.ajax({
+            type: 'GET',  // Adjust the request type as needed
+            url: '{% url "switch_scalp_mode" %}',
+            success: function(response) {
+                // Handle success response if needed
+                console.log('scalping_modescalping_modescalping_mode', response.scalping_mode)
+                if (response.scalping_mode) {
+                    $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
+                    document.getElementById('switch_scalp_mode').innerHTML="SCALP MODE"
+                } else {
+                    $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
+                    document.getElementById('switch_scalp_mode').innerHTML="NORMAL MODE"
+                }
+                swal({
+                  position: "top-end",
+                  icon: "success",
+                  title: "Scalping mode is now " + (response.scalping_mode ? "enabled" : "disabled"),
+                  showConfirmButton: false,
+                  timer: 500
+                })
+               
+            },
+            error: function(xhr, status, error) {
+                // Handle error response if needed
+                console.error('Failed to close position. Error:', error);
+                swal({
+                  position: "top-end",
+                  icon: "error",
+                  title: "some error occured!",
+                  showConfirmButton: false,
+                  timer: 500
+                })
+               
+            }
+        });
+      });
+    });
+  </script>
 
 {% endblock %}

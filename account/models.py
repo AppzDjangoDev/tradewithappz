@@ -12,3 +12,9 @@ class User(AbstractUser):
 	REQUIRED_FIELDS = []
 	def __str__(self):
        	 return self.username
+
+
+class CommonConfig(models.Model):
+	param = models.CharField(max_length=50,null=True)
+	value = models.CharField(max_length=5000,null=True)
+	

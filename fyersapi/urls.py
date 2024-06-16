@@ -53,8 +53,13 @@ urlpatterns = [
 
 
     path('store_current_value_in_session/', views.store_current_value_in_session, name='store_current_value_in_session'),
-    path('get_session_data/', views.get_session_data, name='get_session_data'),
+    path('get_open_temp_data/', views.get_open_temp_data, name='get_open_temp_data'),
+    path('get_scalp_mode_state/', views.get_scalp_mode_state, name='get_scalp_mode_state'),
+    path('switch_scalp_mode/', views.switch_scalp_mode, name='switch_scalp_mode'),
     path('remove_session_data/', views.remove_session_data, name='remove_session_data'),
+
+
+    
 
 
     

@@ -97,8 +97,15 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         self.accept()
 
         self.last_keyword = self.scope['url_route']['kwargs']['last_keyword']  # Extract the last keyword from URL
+        if self.last_keyword == "SENSEX":
+            exchnage =  "BSE:"
+        else:
+            exchnage =  "NSE:"
+            
+
+
         #print("last_keywordlast_keyword", self.last_keyword)
-        self.symbols = ["NSE:" + self.last_keyword + "-INDEX"]
+        self.symbols = [exchnage + self.last_keyword + "-INDEX"]
         # Generate app_id_hash
         self.app_id = settings.FYERS_APP_ID
         secret_key = settings.FYERS_SECRET_ID
@@ -161,7 +168,6 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         # Specify the data type and symbols you want to subscribe to
         data_type = "SymbolUpdate"
         self.allsymbols = self.symbols+self.getoptionsymbols
-
         #print("self.allsymbolsself.allsymbols", self.allsymbols)
 
         # Subscribe to the specified symbols and data type
@@ -181,6 +187,7 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         #print("Connection closed:", message)
         data_type = "SymbolUpdate"
         self.fyers.unsubscribe(symbols=self.allsymbols, data_type=data_type)
+        self.close()
         self.send(text_data=f"Connection closed: {message}")
 
     @staticmethod

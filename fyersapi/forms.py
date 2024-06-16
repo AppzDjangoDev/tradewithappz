@@ -3,18 +3,43 @@ from django.conf import settings
 from .models import TradingConfigurations
 from .models import SOD_EOD_Data
 
+from django import forms
+from django.utils import timezone
+
 class TradingConfigurationsForm(forms.ModelForm):
     class Meta:
         model = TradingConfigurations
-        fields = '__all__'  # To include all fields from the model
-        # Alternatively, you can specify the fields explicitly:
-        # fields = ['default_stoploss', 'default_order_qty', 'max_loss', 'max_trade_count', 'capital_usage_limit']
+        fields = '__all__'
+        exclude = ['scalping_mode'] 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add classes to form fields for Bootstrap styling
         for field_name, field in self.fields.items():
             field.widget.attrs['class'] = 'form-control'
+
+        # Fetch the existing TradingConfigurations object
+        six_hours_ago = timezone.now() - timezone.timedelta(hours=6)
+        trading_config_exists = TradingConfigurations.objects.filter(last_updated__gte=six_hours_ago)
+
+        if trading_config_exists.exists():
+            # Set initial data from the existing record
+            self.initial.update(trading_config_exists.first().__dict__)
+
+        else:
+            trading_config_exists = TradingConfigurations.objects.order_by('-last_updated').first()
+            self.initial.update(trading_config_exists.__dict__)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        six_hours_ago = timezone.now() - timezone.timedelta(hours=6)
+
+        trading_config_exists = TradingConfigurations.objects.filter(last_updated__gte=six_hours_ago).exists()
+
+        # if trading_config_exists:
+        #     raise forms.ValidationError("Cannot modify the configuration on this day.")
+
+        return cleaned_data
+
 
 class SOD_DataForm(forms.ModelForm):
     class Meta:
