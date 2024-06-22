@@ -141,52 +141,40 @@ def get_accese_token_store_session(request):
 def close_all_positions(request):
     client_id = settings.FYERS_APP_ID
     access_token = request.session.get('access_token')
-    if access_token:
-        # Initialize the FyersModel instance with your client_id, access_token, and enable async mode
-        fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
-        order_data = fyers.orderbook()
-        # Initialize an empty list to store order IDs with status 6
-        orders_with_status_6 = []
-        # Iterate through the orderBook
-        for order in order_data["orderBook"]:
-            # Check if the status is 6
-            if order["status"] == 6:
-                # Append the ID to the list
-                orders_with_status_6.append({"id": order.get("id")})
-        order_cancel_response = []
-        # Check if there are orders to cancel
-        if orders_with_status_6:
-            # Cancel the orders
-            order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
-            #print("Order cancel response:", order_cancel_response)
-            messages.success(request,order_cancel_response)
-        else:
-            #print("No pending orders to cancel.")
-            messages.success(request,"No pending orders to cancel.")
-        # Code indicates successful cancellation or order not found
-        data = {
-            "segment": [11],
-            "side": [1],
-            "productType": ["INTRADAY"]
-        }
-        response = fyers.exit_positions(data=data)
-        # Check if 'data' key exists in the response
-        #print("responseresponse", response)
-        if 'message' in response:
-            message = response['message']
-            messages.success(request, message)
-            # request.session.pop('open_symbol', None)
-            # request.session.pop('open_qty', None)
-            # request.session.pop('open_traded_price', None)
-            # request.session.pop('exp_stoploss_amount', None)
-            OpenOrderTempData.objects.all().delete()
-            return JsonResponse({'message': message, 'code': response['code'] })
-        else:
-            # Handle the case where 'data' key is missing
-            message = "Error: Response format is unexpected"
-            messages.error(request, "Error: Response format is unexpected")
-            return JsonResponse({'message': message, 'code': response['code'] })
-    return redirect('dashboard')  
+    
+    if not access_token:
+        return redirect('dashboard')
+    
+    fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
+    order_data = fyers.orderbook()
+
+    # Collect order IDs with status 6 using list comprehension
+    orders_with_status_6 = [{"id": order.get("id")} for order in order_data["orderBook"] if order["status"] == 6]
+
+    if orders_with_status_6:
+        order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
+        messages.success(request, order_cancel_response)
+    else:
+        messages.success(request, "No pending orders to cancel.")
+
+    # Exit positions
+    data = {
+        "segment": [11],
+        "side": [1],
+        "productType": ["INTRADAY"]
+    }
+    response = fyers.exit_positions(data=data)
+
+    if 'message' in response:
+        message = response['message']
+        messages.success(request, message)
+        OpenOrderTempData.objects.all().delete()
+        return JsonResponse({'message': message, 'code': response['code']})
+    else:
+        message = "Error: Response format is unexpected"
+        messages.error(request, message)
+        return JsonResponse({'message': message, 'code': response['code']})
+
 
 def get_data_instance(request):
     context={}
@@ -787,14 +775,6 @@ class TransactionHistory(LoginRequiredMixin, View):
         context['get_transaction_data'] = get_transaction_data
         return render(request, 'trading_tool/html/transaction_history.html', context)
 
-def calculate_tax(cost):
-    # Constants from the derived formula
-    a = 0.000732
-    b = 3.962
-    
-    # Calculate the tax
-    tax = a * cost + b
-    return tax
 
 class OptionChainView(LoginRequiredMixin, View):
     login_url = '/login'
@@ -803,184 +783,136 @@ class OptionChainView(LoginRequiredMixin, View):
         context = {}
         template = 'trading_tool/html/optionchainview.html'
         data_instance = get_data_instance(request)
-        confData = TradingConfigurations.objects.order_by('-last_updated').first()
-        forward_trailing_points = confData.forward_trailing_points
-        reverse_trailing_points = confData.reverse_trailing_points
+        conf_data = TradingConfigurations.objects.order_by('-last_updated').first()
 
-        if confData.scalping_mode:
-            cost = confData.scalping_amount_limit
-            stoploss_percentage = confData.scalping_stoploss
-        else:
-            cost = confData.capital_limit_per_order
-            stoploss_percentage = confData.default_stoploss
-        if slug == "SENSEX":
-            exchnage =  "BSE:"
-        else:
-            exchnage =  "NSE:"
-            
-        data = {
-            "symbol": exchnage + slug + "-INDEX",
-            "strikecount": 2,
-        }
+        forward_trailing_points = conf_data.forward_trailing_points
+        reverse_trailing_points = conf_data.reverse_trailing_points
+        scalping_mode = conf_data.scalping_mode
+        cost = conf_data.scalping_amount_limit if scalping_mode else conf_data.capital_limit_per_order
+        stoploss_percentage = conf_data.scalping_stoploss if scalping_mode else conf_data.default_stoploss
+        exchange = "BSE:" if slug == "SENSEX" else "NSE:"
+
+        data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 2}
 
         try:
             expiry_response = data_instance.optionchain(data=data)
             order_data = data_instance.orderbook()
-            total_order_status = sum(1 for order in order_data["orderBook"] if order["status"] == 2)
-            positions_data = data_instance.positions() 
-            # print('fund_datafund_data', fund_data)
-            # for item in fund_data.get('fund_limit', []):
-            #     if item.get('title') == 'Total Balance':
-            #         total_balance = item.get('equityAmount')
-            #     if item.get('title') == 'Realized Profit and Loss':
-            #         realised_profit = item.get('equityAmount')
-            #         print('realised_profitrealised_profit', realised_profit)
-            #         break
+            total_order_status = sum(1 for order in order_data.get("orderBook", []) if order["status"] == 2)
+            positions_data = data_instance.positions()
 
             tax = calculate_tax(cost)
             default_brokerage = settings.DEFAULT_BROKERAGE + tax
-            print('default_brokeragedefault_brokerage', default_brokerage)
             exp_brokerage = default_brokerage * total_order_status
             trading_config = TradingConfigurations.objects.order_by('-last_updated').first()
-            order_limit =  trading_config.max_trade_count
-            exp_brokerage_limit = order_limit*default_brokerage
-            # sat
+            order_limit = trading_config.max_trade_count
+            exp_brokerage_limit = order_limit * default_brokerage
+
             first_expiry_ts = expiry_response['data']['expiryData'][0]['expiry']
             first_expiry_date = expiry_response['data']['expiryData'][0]['date']
         except (KeyError, AttributeError, IndexError) as e:
-            # Handle the error gracefully
             error_message = f'Error occurred: {str(e)}'
-            #print("Error occurred while fetching expiry data:", error_message)
-            context['expiry_response'] = error_message
-            return redirect('login')  
-            # return render(request, template, context)
+            messages.error(request, error_message)
+            return redirect('login')
 
-        options_data = {
-            "symbol": exchnage + slug + "-INDEX",
-            "strikecount": 2,
-            "timestamp": first_expiry_ts
-        }
+        options_data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 2, "timestamp": first_expiry_ts}
+
         try:
             response = data_instance.optionchain(data=options_data)
         except AttributeError as e:
             error_message = f'Error occurred while fetching options data: {str(e)}'
-            #print(error_message)
-            context['options_data'] = error_message
+            messages.error(request, error_message)
             return render(request, template, context)
-        
-        # Filter optionsChain data for option type 'PE'
-        pe_options = [option for option in response['data']['optionsChain'] if option['option_type'] == 'PE']
 
-        # Sort the filtered data by strike_price in ascending order
+        pe_options = [option for option in response['data']['optionsChain'] if option['option_type'] == 'PE']
         pe_options_sorted = sorted(pe_options, key=lambda x: x['strike_price'], reverse=True)
 
-        # Add serial numbers to the sorted list
         for index, option in enumerate(pe_options_sorted, start=1):
             option['serial_number'] = index
-            option['lot_cost'] = int(option['ltp']) * get_deafult_lotsize(slug)
+            option['lot_cost'] = int(option['ltp']) * get_default_lotsize(slug)
 
-        # Add serial numbers to the sorted list
-        pe_options_with_serial = []    
-        # #print the modified data
-        for option in pe_options_sorted:
-            pe_options_with_serial.append(option)
-        # #print("**************************************")
-        # #print(pe_options_with_serial)
-        # #print("**************************************")
-        # Filter optionsChain data for option type 'CE'
         ce_options = [option for option in response['data']['optionsChain'] if option['option_type'] == 'CE']
-
-        # Sort the filtered data by strike_price in ascending order
         ce_options_sorted = sorted(ce_options, key=lambda x: x['strike_price'])
 
-        # Add serial numbers to the sorted list
         for index, option in enumerate(ce_options_sorted, start=1):
             option['serial_number'] = index
-            option['lot_cost'] = int(option['ltp']) * get_deafult_lotsize(slug)
+            option['lot_cost'] = int(option['ltp']) * get_default_lotsize(slug)
 
-        # Add serial numbers to the sorted list
-        ce_options_with_serial = []    
-        # #print the modified data
-        # for option in ce_options_sorted:
-        #     ce_options_with_serial.append(option)
+        actual_profit = round(float(positions_data['overall']['pl_realized']) - float(exp_brokerage), 2)
+        reward_ratio = conf_data.reward_ratio
+        exp_loss = (cost * stoploss_percentage) / 100
+        exp_profit_percentage = stoploss_percentage * reward_ratio
+        exp_profit = (cost * exp_profit_percentage) / 100
+
+        day_max_loss = -conf_data.max_loss
+        super_trader_threshold = exp_brokerage_limit * reward_ratio * 2
+
+        # max_serial_number = len(pe_options_sorted) * 2 - 1
+        # atm_index = (max_serial_number // 2) + 1
+
+        atm_index = len(pe_options_sorted) // 2  # Calculate the ATM index
 
 
-        for option in reversed(ce_options_sorted):
-            ce_options_with_serial.append(option)
 
 
-        actual_profit = float(positions_data['overall']['pl_realized']) - float(exp_brokerage)
-        actual_profit = round(actual_profit, 2)
 
-        reward_ratio = confData.reward_ratio
 
-        exp_loss = (cost*stoploss_percentage)/100
-        exp_profit_percenatge = stoploss_percentage*reward_ratio
-        exp_profit = (cost*exp_profit_percenatge)/100
 
-        # #print("**************************************")
-        # #print(ce_options_with_serial)
-        # #print("**************************************")
-        context['access_token'] = request.session.get('access_token')
-        context['forward_trailing_points'] = forward_trailing_points
-        context['reverse_trailing_points'] = reverse_trailing_points
-        context['ce_options_with_serial'] = ce_options_with_serial
-        context['pe_options_with_serial'] = pe_options_with_serial
-        context['expiry_response'] = first_expiry_date
-        context['positions_data'] = positions_data
-        context['order_limit'] = order_limit
-        context['exp_brokerage_limit'] = exp_brokerage_limit
-        context['day_exp_profit'] = exp_brokerage_limit * reward_ratio
-        context['exp_loss'] = exp_loss
-        context['exp_profit'] = exp_profit
 
-        context['total_order_status'] = total_order_status
-        context['day_exp_brokerage'] = exp_brokerage
-        context['actual_profit'] = actual_profit
-        context['options_data'] = response
+
+        context.update({
+            'access_token': request.session.get('access_token'),
+            'forward_trailing_points': forward_trailing_points,
+            'reverse_trailing_points': reverse_trailing_points,
+            'ce_options_with_serial': ce_options_sorted,
+            'pe_options_with_serial': pe_options_sorted,
+            # 'max_serial_number': max_serial_number,
+            'atm_index': atm_index,
+            'expiry_response': first_expiry_date,
+            'positions_data': positions_data,
+            'order_limit': order_limit,
+            'exp_brokerage_limit': exp_brokerage_limit,
+            'day_exp_profit': exp_brokerage_limit * reward_ratio,
+            'exp_loss': exp_loss,
+            'day_max_loss': day_max_loss,
+            'day_max_loss_end': -(exp_brokerage_limit * reward_ratio),
+            'exp_profit': exp_profit,
+            'super_trader_threshold': super_trader_threshold,
+            'total_order_status': total_order_status,
+            'day_exp_brokerage': exp_brokerage,
+            'actual_profit': actual_profit,
+            'options_data': response
+        })
         return render(request, template, context)
 
-
+def calculate_tax(cost):
+    a = 0.000732
+    b = 3.962
+    tax = a * cost + b
+    return tax
 
 def update_latest_data(request):
-    # Call API to get data
-    #print("entry__1")
     data_instance = get_data_instance(request)
 
-    # Save positions data
     positions = data_instance.positions()
     TradingData.objects.update_or_create(
-        category='POSITIONS',last_updated =  timezone.now(),
-        defaults={'data': positions, 'last_updated': timezone.now()},
-        # other fields
+        category='POSITIONS',
+        defaults={'data': positions, 'last_updated': timezone.now()}
     )
 
-    # Save orders data
     orders = data_instance.orderbook()
     TradingData.objects.update_or_create(
-        category='ORDERS',last_updated =  timezone.now(),
-        defaults={'data': orders, 'last_updated': timezone.now()},
-        # other fields
+        category='ORDERS',
+        defaults={'data': orders, 'last_updated': timezone.now()}
     )
 
-    # Save funds data
     funds = data_instance.funds()
     TradingData.objects.update_or_create(
-        category='FUNDS',last_updated =  timezone.now(),
-        defaults={'data': funds, 'last_updated': timezone.now()},
-        # other fields
+        category='FUNDS',
+        defaults={'data': funds, 'last_updated': timezone.now()}
     )
+
     return HttpResponse('Data saved')
 
-# class ConfigureTradingView(LoginRequiredMixin,FormView):
-#     login_url = '/login'
-#     template_name = 'trading_tool/html/configure_trading.html'
-#     form_class = TradingConfigurationsForm
-#     success_url = reverse_lazy('dashboard')
-
-#     def form_valid(self, form):
-#         form.save()
-#         return super().form_valid(form)
    
 from django.http import JsonResponse
 from django.urls import reverse_lazy
@@ -1011,7 +943,7 @@ class ConfigureTradingView(LoginRequiredMixin, FormView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        six_hours_ago = timezone.now() - timezone.timedelta(hours=6)
+        six_hours_ago = timezone.now() - timezone.timedelta(seconds=1)
         trading_config_exists = TradingConfigurations.objects.filter(last_updated__gte=six_hours_ago)
         if trading_config_exists.exists():
             kwargs['instance'] = trading_config_exists.first()
@@ -1021,11 +953,15 @@ class ConfigureTradingView(LoginRequiredMixin, FormView):
         return kwargs
 
     def form_valid(self, form):
-        six_hours_ago = timezone.now() - timezone.timedelta(hours=6)
+        six_hours_ago = timezone.now() - timezone.timedelta(seconds=1)
         trading_config_exists = TradingConfigurations.objects.filter(last_updated__gte=six_hours_ago)
         if trading_config_exists.exists():
             return JsonResponse({'error': True})
         else:
+            trading_config = form.save(commit=False)
+            # Calculate scalping_amount_limit
+            trading_config.scalping_amount_limit =  trading_config.capital_limit_per_order / trading_config.scalping_ratio
+            trading_config.scalping_stoploss = trading_config.scalping_ratio * trading_config.default_stoploss
             form.save()
         return JsonResponse({'success': True})
 
@@ -1039,12 +975,7 @@ class ConfigureTradingView(LoginRequiredMixin, FormView):
         return context
 
 
-
-
-
-    
-
-def get_deafult_lotsize(index):
+def get_default_lotsize(index):
     if index == 'MIDCPNIFTY':
         return 75
     elif index == 'FINNIFTY':
@@ -1059,53 +990,44 @@ def get_deafult_lotsize(index):
         return False
 
 
+from decimal import Decimal
+from django.conf import settings
+from django.http import JsonResponse
+from .models import TradingConfigurations, OpenOrderTempData
+
 def instantBuyOrderWithSL(request):
     if request.method == 'POST':
         data_instance = get_data_instance(request)
         der_symbol = request.POST.get('der_symbol')
         ex_symbol = request.POST.get('ex_symbol')
-        ltp = float(request.POST.get('ltp'))
-        get_lot_count = get_deafult_lotsize(ex_symbol)
-        # Retrieve default order quantity from trade configurations
+        ltp = Decimal(request.POST.get('ltp'))
+        get_lot_count = get_default_lotsize(ex_symbol)
         trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
         scalping_mode = trade_config_data.scalping_mode
-        tempDatainstance = OpenOrderTempData.objects.all()
-        if tempDatainstance.exists():
-            exst_temp_data = tempDatainstance.order_by('-last_updated').first()
-            if exst_temp_data.symbol != der_symbol:
-                message = "Unable to place another Symbol Order Now."
-                return JsonResponse({'response': message})
-            # if exst_temp_data.premium_price < ltp:
-            #     print('**************************************', exst_temp_data.is_averaged)
-            #     message = "Unable to Average on Higher Price as per ARM System"
-            #     return JsonResponse({'response': message})
+        allOrderData = data_instance.orderbook()
+        total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+        max_order_count_limit = trade_config_data.max_trade_count
+        if int(total_order_count) >= int(max_order_count_limit):
+            message = "Max Order count limit Reached"
+            return JsonResponse({'response': message})
+        
+        tempDatainstance = OpenOrderTempData.objects.order_by('-last_updated').first()
+        if tempDatainstance and tempDatainstance.symbol != der_symbol:
+            message = "Unable to place another Symbol Order Now."
+            return JsonResponse({'response': message})
 
-            # if trade_config_data.averaging_limit == exst_temp_data.is_averaged:
-            #     message = "Average limit Reached as per ARM System"
-            #     return JsonResponse({'response': message})
-
-        if trade_config_data.order_quantity_mode=="MANUAL":
+        if trade_config_data.order_quantity_mode == "MANUAL":
             order_qty = trade_config_data.default_order_qty * get_lot_count
 
-
-        if trade_config_data.order_quantity_mode=="AUTOMATIC":
-            if scalping_mode:
-                limit_amount = trade_config_data.scalping_amount_limit
-            else:
-                limit_amount = trade_config_data.capital_limit_per_order
-
-            per_lot_expense = ltp*get_lot_count
-            print('per_lot_expenseper_lot_expense', per_lot_expense)
-            lotqty = float(limit_amount) // float(per_lot_expense)
-            order_qty = lotqty*get_lot_count
-            order_qty = int(order_qty)
-            total_order_expense = order_qty * ltp
-            print('**************************************', order_qty, total_order_expense,'******************************', ltp, per_lot_expense)
+        elif trade_config_data.order_quantity_mode == "AUTOMATIC":
+            limit_amount = trade_config_data.scalping_amount_limit if scalping_mode else trade_config_data.capital_limit_per_order
+            per_lot_expense = ltp * get_lot_count
+            lotqty = Decimal(limit_amount) // per_lot_expense
+            order_qty = int(lotqty * get_lot_count)
             if order_qty == 0:
                 message = "Amount Usage Limit Reached"
                 return JsonResponse({'response': message})
-                      
-        # Prepare order data for market buy order
+
         data = {
             "symbol": der_symbol,
             "qty": order_qty,
@@ -1116,78 +1038,49 @@ def instantBuyOrderWithSL(request):
             "offlineOrder": False
         }
 
-        # Place market buy order
         response = data_instance.place_order(data=data)
-        # dummy_data 
-        # response["code"] = 1101
-
+        
         if response["code"] == 1101:
-            # Fetch session variables
-            # try:
-            #     open_qty = int(request.session.get('open_qty', 0))
-            #     open_traded_price = float(request.session.get('open_traded_price', 0.0))
-            # except KeyError:
-            #     open_qty = None
-            #     open_traded_price = None
-
-            # Check if there's an existing pending order with status 6 for the same symbol
-            allOrderData = data_instance.orderbook()
+            
             order_with_status_6 = next((order for order in allOrderData["orderBook"] if order['status'] == 6 and order["symbol"] == der_symbol), None)
-            tempDatainstance = OpenOrderTempData.objects.filter(symbol=der_symbol)
-            print('ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp')
-            # if order_with_status_6:
-            if tempDatainstance.exists() and order_with_status_6:
-                existempData = tempDatainstance.order_by('-last_updated').first()
-                print('pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppcc', tempDatainstance)
-                # Modify the existing order by adding the new quantity to it
-                exst_qty = order_with_status_6['qty']
-                orderId = order_with_status_6['id']
-                # orderId = 1525
-                exst_qty=existempData.quantity
+            if tempDatainstance and order_with_status_6:
+                exst_qty = tempDatainstance.quantity
                 new_qty = order_qty + exst_qty
-                modify_data = {"id": orderId, "type": 4, "qty": new_qty}
-                modify_response = data_instance.modify_order(data=modify_data)
-
-
-
-                # Store updated values back to Temp table
                 total_order_expense = order_qty * ltp
-                ext_total_order_expense = float(existempData.order_total) + float(total_order_expense)
-                # average_price = (float(existempData.average_price) + float(ltp))/2
+                ext_total_order_expense = Decimal(tempDatainstance.order_total) + total_order_expense
                 average_price = ext_total_order_expense / new_qty
-                print('qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq', total_order_expense)
-                print('qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq', existempData.order_total)
-                print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", ext_total_order_expense, type(ext_total_order_expense))
-                sl_price = existempData.sl_price
+                sl_price = tempDatainstance.sl_price
                 exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
-                is_averaged = existempData.is_averaged + 1 
+                is_averaged = tempDatainstance.is_averaged + 1
 
-                tempDatainstance.update(order_total = Decimal(ext_total_order_expense), premium_price = ltp, quantity=new_qty, average_price=average_price, exp_loss = exp_loss , is_averaged = is_averaged)
+                tempDatainstance.update(
+                    order_total=ext_total_order_expense, 
+                    premium_price=ltp, 
+                    quantity=new_qty, 
+                    average_price=average_price, 
+                    exp_loss=exp_loss, 
+                    is_averaged=is_averaged
+                )
 
-                # OpenOrderTempData.objects.update(symbol=der_symbol,order_total=total_purchase_value, premium_price = open_traded_price, quantity=new_qty)
+                modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
+                modify_response = data_instance.modify_order(data=modify_data)
                 return JsonResponse({'response': modify_response["message"]})
+            
             else:
-                # Place stop-loss order
                 buy_order_id = response["id"]
                 buy_order_data = {"id": buy_order_id}
-                get_buy_orderdata = data_instance.orderbook(data=buy_order_data)
-                order_details = get_buy_orderdata["orderBook"][0]
-                traded_price = order_details["tradedPrice"]
-                # dummy_data 
-                # traded_price = ltp
-                if scalping_mode:
-                    stoplossConf = trade_config_data.scalping_stoploss
-                else:
-                    stoplossConf = trade_config_data.default_stoploss
-            
-                # Calculate stop-loss and limit price
-                default_stoploss = float(stoplossConf)
-                stoploss_limit_slippage = trade_config_data.stoploss_limit_slippage
+                order_details = data_instance.orderbook(data=buy_order_data)["orderBook"][0]
+                traded_price = Decimal(order_details["tradedPrice"])
+
+                stoplossConf = trade_config_data.scalping_stoploss if scalping_mode else trade_config_data.default_stoploss
+                default_stoploss = Decimal(stoplossConf)
+                stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+
                 stoploss_price = traded_price - (traded_price * default_stoploss / 100)
-                stoploss_price = round(stoploss_price / 0.05) * 0.05
+                stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
                 stoploss_price = round(stoploss_price, 2)
-                stoploss_limit = stoploss_price - float(stoploss_limit_slippage)
-                stoploss_limit = round(stoploss_limit / 0.05) * 0.05
+                stoploss_limit = stoploss_price - stoploss_limit_slippage
+                stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
                 stoploss_limit = round(stoploss_limit, 2)
 
                 sl_data = {
@@ -1203,73 +1096,41 @@ def instantBuyOrderWithSL(request):
                 }
 
                 stoploss_order_response = data_instance.place_order(data=sl_data)
+                total_purchase_value = traded_price * order_qty
+                sl_price = stoploss_price
+                exp_loss = (traded_price - sl_price) * order_qty
 
-                # Update session variables
-                open_traded_price = float(traded_price)
-                total_purchase_value = open_traded_price * order_qty 
-                exp_stoploss_value = StopLossCalculator(total_purchase_value, default_stoploss)
-                exp_stoploss_amount = total_purchase_value - exp_stoploss_value
-                print("111111111111111111111")
-                if not tempDatainstance.exists() :
-                    print("2222222222222222222222222222222222222")
-                # if open_qty is not None and open_traded_price is not None:
-                #     open_qty += int(order_qty)
-                #     if open_traded_price != 0.0 :
-                #         avg_price = (traded_price+open_traded_price)/2
-                #         open_traded_price = float(avg_price)
-                        
-                #         total_purchase_value = open_traded_price * open_qty
-                #         exp_stoploss_value = StopLossCalculator(total_purchase_value, default_stoploss)
-                #         exp_stoploss_amount = total_purchase_value - exp_stoploss_value
-                    # Store updated values back to session
-                    print("exp_stoploss_amount", exp_stoploss_amount)
-                    sl_price = Decimal(stoploss_price) 
-                    exp_loss = (Decimal(open_traded_price) - sl_price) * Decimal(order_qty)
-                    print('open_traded_priceopen_traded_price', open_traded_price, sl_price, order_qty)
-                    print('exp_lossexp_lossexp_lossexp_loss', exp_loss)
-
-                    
-                    OpenOrderTempData.objects.create(symbol=der_symbol,order_total=total_order_expense, premium_price = open_traded_price, average_price = open_traded_price, quantity=order_qty, sl_price = sl_price, exp_loss = exp_loss, is_averaged = 0  )
-                    # request.session['open_symbol'] = der_symbol
-                    # request.session['exp_stoploss_amount'] = exp_stoploss_amount
-                    # request.session['open_qty'] = open_qty
-                    # request.session['open_traded_price'] = open_traded_price
-                    #print("request.session['open_qty']request.session['open_qty']", request.session['open_qty'])
-                else:
-                    # Handle case when open_qty or open_traded_price is None
-                    # Maybe log an error or take appropriate action
-                    pass
-
+                OpenOrderTempData.objects.create(
+                    symbol=der_symbol, 
+                    order_total=total_purchase_value, 
+                    premium_price=traded_price, 
+                    average_price=traded_price, 
+                    quantity=order_qty, 
+                    sl_price=sl_price, 
+                    exp_loss=exp_loss, 
+                    is_averaged=0
+                )
 
                 if stoploss_order_response["code"] == 1101:
                     message = "BUY/SL-L Placed Successfully"
-                    return JsonResponse({'response': message , 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price })
-                elif response["code"] == -99:
+                    return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
+                elif stoploss_order_response["code"] == -99:
                     message = "SL-L not Placed, Insufficient Fund"
                     return JsonResponse({'response': message})
                 else:
                     return JsonResponse({'response': stoploss_order_response["message"]})
-                
-
         elif response["code"] == -99:
-            print('responseresponseresponseresponse', response)
             return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
         else:
             return JsonResponse({'response': response["message"]})
     else:
         message = "Some Error Occurred Before Execution"
         return JsonResponse({'response': message})
-    
+
 
 def StopLossCalculator(purchase_price: float, loss_percentage: float) -> int:
-    
     stop_loss_price = purchase_price * (1 - loss_percentage / 100)
-    
     return int(round(stop_loss_price))
-
-
-
-
 
 
 def trailingwithlimit(request):
@@ -1277,52 +1138,60 @@ def trailingwithlimit(request):
     access_token = request.session.get('access_token')
     
     if access_token:
-        # Initialize the FyersModel instance with your client_id, access_token, and enable async mode
         fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
         order_data = fyers.orderbook()
-        #print("pppppppppppppppp", order_data)
+
+        if 'orderBook' not in order_data:
+            message = "Error fetching order book data."
+            messages.error(request, message)
+            return JsonResponse({'message': message})
         
-        # Initialize variables to store stop and limit prices
         existing_stop_price = None
         existing_limit_price = None
-        
-        # Iterate through the orderBook
+        symbol = None
+
         for order in order_data.get("orderBook", []):
-            #print("pppppppppppppppp", order)
-            # Check if the status is 6
             if order.get("status") == 6:
-                # Get the stop and limit prices
                 existing_stop_price = order.get("stopPrice", existing_stop_price)
                 existing_limit_price = order.get("limitPrice", existing_limit_price)
-                symbol = order["symbol"]
+                symbol = order.get("symbol", symbol)
+        
         if existing_stop_price is not None and existing_limit_price is not None:
             trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
-            forwrd_trail_limit = trade_config_data.forward_trailing_points
+            if not trade_config_data:
+                message = "No trading configuration data found."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
 
-            # Calculate new stop and limit prices
-            new_stop_price = existing_stop_price + forwrd_trail_limit
-            new_limit_price = existing_limit_price + forwrd_trail_limit
-            
-            # Check if there are orders to cancel
-            if existing_stop_price is not None:
-                # Modify the order with new stop and limit prices
-                data = {"id": order["id"],  "type": order["type"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
+            forwrd_trail_limit = Decimal(trade_config_data.forward_trailing_points)
+
+            new_stop_price = Decimal(existing_stop_price) + forwrd_trail_limit
+            new_limit_price = Decimal(existing_limit_price) + forwrd_trail_limit
+
+            if symbol:
+                data = {"id": order["id"], "type": order["type"], "limitPrice": float(new_limit_price), "stopPrice": float(new_stop_price)}
                 trailing_order_update = fyers.modify_order(data=data)
-                
-                # Check the response
+
                 if 'message' in trailing_order_update:
-                    openTempDatainstance = OpenOrderTempData.objects.filter(symbol=symbol)
-                    exp_loss = (Decimal(openTempDatainstance.open_traded_price) - new_stop_price) * Decimal(openTempDatainstance.order_qty)
                     openTempDatainstance = OpenOrderTempData.objects.filter(symbol=symbol).first()
                     if openTempDatainstance:
+                        exp_loss = (Decimal(openTempDatainstance.open_traded_price) - new_stop_price) * Decimal(openTempDatainstance.order_qty)
                         openTempDatainstance.sl_price = new_stop_price
                         openTempDatainstance.exp_loss = exp_loss
                         openTempDatainstance.save()
+                    
                     message = trailing_order_update['message']
                     messages.success(request, message)
                     return JsonResponse({'message': message})
+                else:
+                    message = "Error updating trailing order."
+                    messages.error(request, message)
+                    return JsonResponse({'message': message})
+            else:
+                message = "No valid orders to modify."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
         
-        # Handle the case where 'data' key is missing
         message = "No SL/Pending Orders"
         messages.error(request, message)
         return JsonResponse({'message': message})
@@ -1330,55 +1199,66 @@ def trailingwithlimit(request):
     return redirect('dashboard')
 
 
+
 def trailingtodown(request):
     client_id = settings.FYERS_APP_ID
     access_token = request.session.get('access_token')
     
     if access_token:
-        # Initialize the FyersModel instance with your client_id, access_token, and enable async mode
         fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
         order_data = fyers.orderbook()
+
+        if 'orderBook' not in order_data:
+            message = "Error fetching order book data."
+            messages.error(request, message)
+            return JsonResponse({'message': message})
         
-        # Initialize variables to store stop and limit prices
         existing_stop_price = None
         existing_limit_price = None
-        # Iterate through the orderBook
+        symbol = None
+
         for order in order_data.get("orderBook", []):
-            # Check if the status is 6
             if order.get("status") == 6:
-                # Get the stop and limit prices
                 existing_stop_price = order.get("stopPrice", existing_stop_price)
                 existing_limit_price = order.get("limitPrice", existing_limit_price)
-                symbol = order["symbol"]
+                symbol = order.get("symbol", symbol)
+        
         if existing_stop_price is not None and existing_limit_price is not None:
             trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
-            reverse_trail_limit = trade_config_data.reverse_trailing_points
+            if not trade_config_data:
+                message = "No trading configuration data found."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
 
-            # Calculate new stop and limit prices
-            new_stop_price = existing_stop_price - reverse_trail_limit
-            new_limit_price = existing_limit_price - reverse_trail_limit
-            
-            # Check if there are orders to cancel
-            if existing_stop_price is not None:
-                # Modify the order with new stop and limit prices
-                data = {"id": order["id"], "type": order["type"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
+            reverse_trail_limit = Decimal(trade_config_data.reverse_trailing_points)
+
+            new_stop_price = Decimal(existing_stop_price) - reverse_trail_limit
+            new_limit_price = Decimal(existing_limit_price) - reverse_trail_limit
+
+            if symbol:
+                data = {"id": order["id"], "type": order["type"], "limitPrice": float(new_limit_price), "stopPrice": float(new_stop_price)}
                 trailing_order_update = fyers.modify_order(data=data)
-                
-                # Check the response
+
                 if 'message' in trailing_order_update:
-                    openTempDatainstance = OpenOrderTempData.objects.filter(symbol=symbol)
-                    exp_loss = (Decimal(openTempDatainstance.open_traded_price) - new_stop_price) * Decimal(openTempDatainstance.order_qty)
                     openTempDatainstance = OpenOrderTempData.objects.filter(symbol=symbol).first()
                     if openTempDatainstance:
+                        exp_loss = (Decimal(openTempDatainstance.open_traded_price) - new_stop_price) * Decimal(openTempDatainstance.order_qty)
                         openTempDatainstance.sl_price = new_stop_price
                         openTempDatainstance.exp_loss = exp_loss
                         openTempDatainstance.save()
-                    openTempData =openTempDatainstance.update(sl_price = Decimal(new_stop_price), exp_loss= exp_loss )
+                    
                     message = trailing_order_update['message']
                     messages.success(request, message)
                     return JsonResponse({'message': message})
+                else:
+                    message = "Error updating trailing order."
+                    messages.error(request, message)
+                    return JsonResponse({'message': message})
+            else:
+                message = "No valid orders to modify."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
         
-        # Handle the case where 'data' key is missing
         message = "No SL/Pending Orders"
         messages.error(request, message)
         return JsonResponse({'message': message})
@@ -1389,71 +1269,75 @@ def trailingtodown(request):
 def trailingtotop(request):
     client_id = settings.FYERS_APP_ID
     access_token = request.session.get('access_token')
-    symbol=None
-    
+    symbol = None
+
     if access_token:
-        # Initialize the FyersModel instance with your client_id, access_token, and enable async mode
         fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
         order_data = fyers.orderbook()
-        
-        # Iterate through the orderBook
-        for order in order_data.get("orderBook", []):
-            # Check if the status is 6
-            if order.get("status") == 6:
-                # Get the stop and limit prices
-                symbol = order["symbol"]
 
-        # symbol="MCX:SILVERMIC20AUGFUT"
+        if 'orderBook' not in order_data:
+            message = "Error fetching order book data."
+            messages.error(request, message)
+            return JsonResponse({'message': message})
+
+        for order in order_data.get("orderBook", []):
+            if order.get("status") == 6:
+                symbol = order.get("symbol", symbol)
+
         if symbol is not None:
             response = fyers.positions()
-            dersymbol = symbol
-            filtered_positions = []
-            for position in response["netPositions"]:
-                if position["symbol"] == dersymbol:
-                    filtered_positions.append(position)
-                    break  # Stop iterating once a matching position is found
 
-            #print("00000000000000000000000000",filtered_positions)
-            ltp = filtered_positions[0]["ltp"]
-            #print("Last Traded Price:", ltp)
+            if 'netPositions' not in response:
+                message = "Error fetching positions data."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
+
+            filtered_positions = [position for position in response["netPositions"] if position["symbol"] == symbol]
+
+            if not filtered_positions:
+                message = "No matching positions found."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
+
+            ltp = Decimal(filtered_positions[0]["ltp"])
+
             trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
-            trailing_to_top_points = trade_config_data.trailing_to_top_points
-            stoploss_limit_slippage = trade_config_data.stoploss_limit_slippage
+            if not trade_config_data:
+                message = "No trading configuration data found."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
 
-            # Calculate new stop and limit prices
+            trailing_to_top_points = Decimal(trade_config_data.trailing_to_top_points)
+            stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+
             new_stop_price = ltp - trailing_to_top_points
-            new_limit_price = (ltp - trailing_to_top_points) - float(stoploss_limit_slippage)
-            #print("new_limit_pricenew_limit_price", new_stop_price, "new_limit_price", new_limit_price)
+            new_limit_price = new_stop_price - stoploss_limit_slippage
 
-            # todo 
-            # Check if there are orders to cancel
-            if symbol is not None:
-                # Modify the order with new stop and limit prices
-                data = {"id": order["id"], "limitPrice": new_limit_price, "stopPrice": new_stop_price}
-                #print("******************************************")
-                #print("data", data)
-                #print("******************************************")
+            if symbol:
+                data = {"id": order["id"], "limitPrice": float(new_limit_price), "stopPrice": float(new_stop_price)}
                 trailing_order_update = fyers.modify_order(data=data)
-                
-                # Check the response
+
                 if 'message' in trailing_order_update:
-                    openTempDatainstance = OpenOrderTempData.objects.filter(symbol=symbol)
-                    exp_loss = (Decimal(openTempDatainstance.open_traded_price) - new_stop_price) * Decimal(openTempDatainstance.order_qty)
                     openTempDatainstance = OpenOrderTempData.objects.filter(symbol=symbol).first()
                     if openTempDatainstance:
+                        exp_loss = (Decimal(openTempDatainstance.open_traded_price) - new_stop_price) * Decimal(openTempDatainstance.order_qty)
                         openTempDatainstance.sl_price = new_stop_price
                         openTempDatainstance.exp_loss = exp_loss
                         openTempDatainstance.save()
+
                     message = trailing_order_update['message']
                     messages.success(request, message)
                     return JsonResponse({'message': message})
-                
-        else:    
-            # Handle the case where 'data' key is missing
-            message = "No SL/Pending Orders"
-            messages.error(request, message)
-            return JsonResponse({'message': message})
-    
+
+            else:
+                message = "No valid orders to modify."
+                messages.error(request, message)
+                return JsonResponse({'message': message})
+
+        message = "No SL/Pending Orders"
+        messages.error(request, message)
+        return JsonResponse({'message': message})
+
     return redirect('dashboard')
 
 
@@ -1546,13 +1430,17 @@ def switch_scalp_mode(request):
     if request.method == 'GET':
         # Fetch the latest TradingConfigurations entry
         confData = TradingConfigurations.objects.order_by('-last_updated').first()
+        if not confData.scalping_mode:
+            capital_limit_per_lot  = confData.scalping_amount_limit
+        else:
+            capital_limit_per_lot  = confData.capital_limit_per_order
         if confData:
             print("Entry - Toggling scalping_mode")
             # Toggle the scalping_mode value
             confData.scalping_mode = not confData.scalping_mode
             confData.save()
             # Return the updated value as a JsonResponse
-            return JsonResponse({'scalping_mode': confData.scalping_mode})
+            return JsonResponse({'scalping_mode': confData.scalping_mode, 'capital': capital_limit_per_lot })
         else:
             print("No TradingConfigurations entry found.")
             # Return an error if no entry is found
@@ -1566,9 +1454,15 @@ def get_scalp_mode_state(request):
     if request.method == 'GET':
         # Fetch the latest TradingConfigurations entry
         confData = TradingConfigurations.objects.order_by('-last_updated').first()
+        if confData.scalping_mode:
+            capital_limit_per_lot  = confData.scalping_amount_limit
+        else:
+            capital_limit_per_lot  = confData.capital_limit_per_order
+
+        
         if confData:
             # Return the updated value as a JsonResponse
-            return JsonResponse({'scalping_mode': confData.scalping_mode})
+            return JsonResponse({'scalping_mode': confData.scalping_mode, 'capital': capital_limit_per_lot })
         else:
             print("No TradingConfigurations entry found.")
             # Return an error if no entry is found

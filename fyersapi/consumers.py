@@ -102,8 +102,6 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         else:
             exchnage =  "NSE:"
             
-
-
         #print("last_keywordlast_keyword", self.last_keyword)
         self.symbols = [exchnage + self.last_keyword + "-INDEX"]
         # Generate app_id_hash

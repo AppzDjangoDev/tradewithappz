@@ -18,7 +18,7 @@ class TradingConfigurationsForm(forms.ModelForm):
             field.widget.attrs['class'] = 'form-control'
 
         # Fetch the existing TradingConfigurations object
-        six_hours_ago = timezone.now() - timezone.timedelta(hours=6)
+        six_hours_ago = timezone.now() - timezone.timedelta(seconds=1)
         trading_config_exists = TradingConfigurations.objects.filter(last_updated__gte=six_hours_ago)
 
         if trading_config_exists.exists():
@@ -31,7 +31,7 @@ class TradingConfigurationsForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        six_hours_ago = timezone.now() - timezone.timedelta(hours=6)
+        six_hours_ago = timezone.now() - timezone.timedelta(seconds=1)
 
         trading_config_exists = TradingConfigurations.objects.filter(last_updated__gte=six_hours_ago).exists()
 

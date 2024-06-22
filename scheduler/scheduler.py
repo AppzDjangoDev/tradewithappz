@@ -205,8 +205,8 @@ def start():
     scheduler = BackgroundScheduler()
     scheduler.add_job(automate_sod_task, CronTrigger(hour=9, minute=15))
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
-    # scheduler.add_job(automate_eod_task, CronTrigger(hour=17, minute=54))
-    scheduler.add_job(automate_eod_task,CronTrigger(day_of_week='mon-fri',hour='9-15', minute=30))
+    scheduler.add_job(automate_eod_task, CronTrigger(hour=15, minute=00))
+    # scheduler.add_job(automate_eod_task,CronTrigger(day_of_week='mon-fri',hour='9-15', minute=30))
 
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.start()

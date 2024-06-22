@@ -10,3 +10,11 @@ def initialize_counter():
 def increment_counter(counter):
     counter['value'] += 1
     return ''
+
+@register.filter
+def subtract(value, arg):
+    try:
+        return value - arg
+    except (TypeError, ValueError):
+        return ''
+

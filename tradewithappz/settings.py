@@ -196,6 +196,13 @@ DATE_INPUT_FORMATS = [
 # DEVELOPMENT_MODE=False  
 DEVELOPMENT_MODE=True  
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+
 # Define a dictionary mapping status values to their descriptions
 STATUS_DESCRIPTIONS = {
     1: 'Cancelled',
