@@ -777,6 +777,7 @@ class TransactionHistory(LoginRequiredMixin, View):
 
 
 class OptionChainView(LoginRequiredMixin, View):
+    # satheesh
     login_url = '/login'
 
     def get(self, request, slug):
@@ -792,7 +793,8 @@ class OptionChainView(LoginRequiredMixin, View):
         stoploss_percentage = conf_data.scalping_stoploss if scalping_mode else conf_data.default_stoploss
         exchange = "BSE:" if slug == "SENSEX" else "NSE:"
 
-        data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 2}
+        data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 1}
+        print('datadata', data)
 
         try:
             expiry_response = data_instance.optionchain(data=data)
@@ -980,7 +982,7 @@ def get_default_lotsize(index):
         return 75
     elif index == 'FINNIFTY':
         return 40
-    elif index == 'BANKNIFTY':
+    elif index == 'NIFTYBANK':
         return 15
     elif index == 'NIFTY':
         return 25
@@ -1000,8 +1002,9 @@ def instantBuyOrderWithSL(request):
         data_instance = get_data_instance(request)
         der_symbol = request.POST.get('der_symbol')
         ex_symbol = request.POST.get('ex_symbol')
+        ex_symbol1 = request.POST.get('ex_symbol1')
         ltp = Decimal(request.POST.get('ltp'))
-        get_lot_count = get_default_lotsize(ex_symbol)
+        get_lot_count = get_default_lotsize(ex_symbol1)
         trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
         scalping_mode = trade_config_data.scalping_mode
         allOrderData = data_instance.orderbook()
@@ -1041,7 +1044,6 @@ def instantBuyOrderWithSL(request):
         response = data_instance.place_order(data=data)
         
         if response["code"] == 1101:
-            
             order_with_status_6 = next((order for order in allOrderData["orderBook"] if order['status'] == 6 and order["symbol"] == der_symbol), None)
             if tempDatainstance and order_with_status_6:
                 exst_qty = tempDatainstance.quantity
@@ -1126,7 +1128,161 @@ def instantBuyOrderWithSL(request):
     else:
         message = "Some Error Occurred Before Execution"
         return JsonResponse({'response': message})
+    
 
+
+# STRADDLE WIDGET LIMIT FEATURE 
+# 0 - CHECK TIME AND SORT OUT 
+
+# 1 - GET OPTION OTM DATA AND
+
+# 2 - GET HIGHER CLOSET VALUE FOR CALL   
+
+# 3 - GET LOWER CLOSEST VALUE FOR PUT
+
+# 4 - CHECK THEIR LTP Lower than straddle_amount_limit 
+
+# 5 - SET QUANTITY WITH IN THE HALF OF straddle_capital_usage FOR EACH PUT AND CALL 
+
+# 6 - PLACE BUY ORDER 
+
+
+# ==================================================================================================================================================================
+
+from decimal import Decimal
+from django.conf import settings
+from django.http import JsonResponse
+from .models import TradingConfigurations, OpenOrderTempData
+from datetime import datetime, time
+import pytz
+# satheesh 
+from django.http import JsonResponse
+from decimal import Decimal
+import math
+
+
+def StraddleBuyOrderPlacement(request):
+    # try:
+    if request.method == 'POST':
+        data_instance = get_data_instance(request)
+        der_symbol = request.POST.get('der_symbol')
+        ex_symbol = request.POST.get('ex_symbol')
+        atm_strike =int( request.POST.get('atm_strike'))
+        print('atm_strikeatm_strikeatm_strike', atm_strike)
+        ltp = Decimal(request.POST.get('ltp'))
+        get_lot_count = get_default_lotsize(ex_symbol)
+        trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
+        exchange = "BSE:" if ex_symbol == "SENSEX" else "NSE:"
+        data = {"symbol": f"{exchange}{ex_symbol}-INDEX", "strikecount": 1}
+        
+        # Fetch expiry data
+        expiry_response = data_instance.optionchain(data=data)
+        if 'error' in expiry_response:  # Check for error response
+            return JsonResponse({'response': expiry_response['error']})
+
+        first_expiry_ts = expiry_response['data']['expiryData'][0]['expiry']
+        options_data = {"symbol": f"{exchange}{ex_symbol}-INDEX", "strikecount": 2, "timestamp": first_expiry_ts}
+        
+        # Fetch options data
+        response = data_instance.optionchain(data=options_data)
+        if 'error' in response:  # Check for error response
+            return JsonResponse({'response': response['error']})
+
+        current_strike_price = atm_strike
+
+        # Initialize variables to find closest strike prices
+        higher_call_strike = {'strike_price': math.inf, 'data': None}  # Start with infinity for comparison
+        lower_put_strike = {'strike_price': -math.inf, 'data': None}   # Start with negative infinity for comparison
+
+        # Process options chain data to find closest strikes
+        options_chain = response['data']['optionsChain']
+
+        for option in options_chain:
+            strike_price = option['strike_price']
+            
+            # Check for higher closest call strike price
+            if option['option_type'] == 'CE' and strike_price > current_strike_price:
+                if strike_price < higher_call_strike['strike_price']:
+                    higher_call_strike['strike_price'] = strike_price
+                    higher_call_strike['data'] = option
+            
+            # Check for lower closest put strike price
+            if option['option_type'] == 'PE' and strike_price < current_strike_price:
+                if strike_price > lower_put_strike['strike_price']:
+                    lower_put_strike['strike_price'] = strike_price
+                    lower_put_strike['data'] = option
+
+        # Prepare the result as a list of dictionaries containing strike price and data
+        result = [higher_call_strike['data'], lower_put_strike['data'] ]
+        ltp_less_than_limit = True
+        for item in result:
+            print("itemitemitem", item)
+            ltp = item['ltp']
+            if float(ltp) >= float(trade_config_data.straddle_amount_limit):
+                ltp_less_than_limit = False
+                break
+
+        if not ltp_less_than_limit:
+            message = "Higher LTP value Than Limit."
+            return JsonResponse({'response': message})
+
+
+        trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
+        allOrderData = data_instance.orderbook()
+        total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+        max_order_count_limit = trade_config_data.max_trade_count
+        
+        if int(total_order_count) >= int(max_order_count_limit):
+            message = "Max Order count limit Reached"
+            return JsonResponse({'response': message})
+        
+        tempDatainstance = OpenOrderTempData.objects.order_by('-last_updated').first()
+        if tempDatainstance and tempDatainstance.symbol != der_symbol:
+            message = "Unable to place another Symbol Order Now."
+            return JsonResponse({'response': message})
+
+        if trade_config_data.order_quantity_mode == "AUTOMATIC":
+            print("entry0000000000001")
+            limit_amount = trade_config_data.straddle_capital_usage/2
+            for strike in result:
+                per_lot_expense = strike['ltp'] * get_lot_count
+                print("per_lot_expenseper_lot_expenseper_lot_expense", per_lot_expense)
+                lotqty = Decimal(limit_amount) // Decimal(per_lot_expense)
+                print("lotqtylotqtylotqtylotqty", lotqty)
+                order_qty = int(lotqty * get_lot_count)
+                if order_qty == 0:
+                    message = "Amount Usage Limit Reached"
+                    return JsonResponse({'response': message})
+
+                data = {
+                    "symbol": strike['symbol'],
+                    "qty": order_qty,
+                    "type": 2,  # Market Order
+                    "side": 1,  # Buy
+                    "productType": "INTRADAY",
+                    "validity": "DAY",
+                    "offlineOrder": False
+                }
+
+                response = data_instance.place_order(data=data)
+                # Assuming data_instance.place_order() returns some response you need to handle
+        # Return a success JsonResponse if everything is okay
+        return JsonResponse({'response': 'Order placed successfully'})
+
+    else:
+        message = "Some Error Occurred Before Execution"
+        return JsonResponse({'response': message})
+        
+    # except Exception as e:
+    #     error_message = f'Error occurred: {str(e)}'
+    #     messages.error(request, error_message)
+    #     return JsonResponse({'response': error_message})
+
+
+
+
+
+# ==================================================================================================================================================================
 
 def StopLossCalculator(purchase_price: float, loss_percentage: float) -> int:
     stop_loss_price = purchase_price * (1 - loss_percentage / 100)

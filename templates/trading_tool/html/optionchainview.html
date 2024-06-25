@@ -218,6 +218,40 @@
         </div>
     </div>
 
+    {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
+
+    {% for option in pe_options_with_serial %}
+    {% if option.option_type == "PE" and  forloop.counter0 == atm_index %}
+        <div class="alert alert-primary straddle" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
+            <div class="row">
+                <div class="col-4 d-flex justify-content-center align-items-center">
+                    <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 straddle-buy-button" style="border-radius: 6px">Buy</button>
+                </div>
+                    <div class="col-4 text-center">
+                        <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
+                        <input type="hidden" name="straddle_strike" value="{{ option.strike_price }}">
+                        <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
+                        <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
+                        <h5 class="card-title text-muted fw-bolder mb-0">
+                                <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STRADDLE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <br>
+                            <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;&nbsp;&nbsp;{{ option.strike_price }}</p>
+                        </h5>
+                        <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
+                    </div>
+                    <div class="col-4 d-flex justify-content-center align-items-center">
+                        <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
+
+
+
+
 <div class="container-fluid ">
     <div class="row ">
                     <!-- Web View -->
@@ -499,6 +533,15 @@
             var ltp = $alert.find('input[name="opt-ltp"]').val();
             var exSymbol = $('input[name="ex_symbol"]').val();
             var csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+            // Get the current URL
+            let url = window.location.href;
+            // Split the URL by '/'
+            let parts = url.split('/');
+            // Get the last part of the URL
+            let lastSegment = parts.pop() || parts.pop();  // handle potential trailing slash
+            var exSymbol1 = lastSegment
+
             
             // Change button text to indicate processing
             $this.prop('disabled', true).text('Placing...');
@@ -510,7 +553,75 @@
                 data: {
                     'der_symbol': derSymbol,
                     'ex_symbol': exSymbol,
+                    'ex_symbol1': exSymbol1,
                     'ltp': ltp,
+                    'csrfmiddlewaretoken': csrfToken
+                }
+            }).done(function(response) {
+                // Handle success response
+                swal({
+                    position: "top-end",
+                    icon: "success",
+                    title: response.response,
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+                fetchSessionDataAndUpdateUI();
+                reconnectWebSocket();
+                fetchData();
+            }).fail(function(xhr, status, error) {
+                // Handle error response
+                console.error('AJAX request failed.', error);
+                swal({
+                    position: "top-end",
+                    icon: "error",
+                    title: "Some error occurred!",
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+                fetchSessionDataAndUpdateUI();
+                fetchData();
+            }).always(function() {
+                // Reset button text
+                $this.prop('disabled', false).text('Buy');
+            });
+        });
+
+        // =======================================================================================================================================
+
+        // Handle click event for buy buttons
+        $('.straddle-buy-button').click(function(e) {
+            e.preventDefault();
+            // Cache jQuery selectors
+            var $this = $(this);
+            var $alert = $this.closest('.alert');
+            var derSymbol = $alert.find('input[name="opt-symbol"]').val();
+            var ltp = $alert.find('input[name="opt-ltp"]').val();
+            var exSymbol = $('input[name="ex_symbol"]').val();
+            var csrfToken = $('meta[name="csrf-token"]').attr('content');
+            var atm_strike = $('input[name="straddle_strike"]').val();
+          
+
+            // Get the current URL
+            let url = window.location.href;
+            // Split the URL by '/'
+            let parts = url.split('/');
+            // Get the last part of the URL
+            let lastSegment = parts.pop() || parts.pop();  // handle potential trailing slash
+            var exSymbol = lastSegment
+
+
+            // Change button text to indicate processing
+            $this.prop('disabled', true).text('Placing...');
+            // Make AJAX request
+            $.ajax({
+                type: 'POST',
+                url: '{% url "straddle_buy_order" %}',
+                data: {
+                    'der_symbol': derSymbol,
+                    'ex_symbol': exSymbol,
+                    'ltp': ltp,
+                    'atm_strike': atm_strike,
                     'csrfmiddlewaretoken': csrfToken
                 }
             }).done(function(response) {

@@ -45,6 +45,11 @@ urlpatterns = [
     path('options-chain-view/<str:slug>/', views.OptionChainView.as_view(), name='options_chain_view'),
     path('configure-trading/', ConfigureTradingView.as_view(), name='configure_trading'),
     path('instant-buy-order/', views.instantBuyOrderWithSL, name='instant_buy_order'),
+    path('straddle-buy-order/', views.StraddleBuyOrderPlacement, name='straddle_buy_order'),
+
+
+
+    
 
     # Trailing Orders
     path('trailingwithlimit/', views.trailingwithlimit, name='trailingwithlimit'),
