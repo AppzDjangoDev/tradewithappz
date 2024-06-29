@@ -13,7 +13,6 @@ from django.core.paginator import Paginator
 from django.shortcuts import render
 from django.views import View
 from .models import OpenOrderTempData, TradingData
-import datetime
 from django.shortcuts import render
 from django.views import View
 from django.http import HttpResponse
@@ -25,6 +24,9 @@ from django.urls import reverse_lazy
 from .forms import EOD_DataForm, SOD_DataForm, TradingConfigurationsForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
+import datetime
+from asgiref.sync import sync_to_async
+
 
 class Brokerconfig(LoginRequiredMixin, View):
     login_url = '/login'
@@ -193,6 +195,23 @@ def get_data_instance(request):
         pass
     return None
 
+def get_fyers_data_instance(request):
+    context={}
+    template="trading_tool/html/profile_view.html"
+    client_id = settings.FYERS_APP_ID
+    access_token = request.session.get('access_token')
+    if access_token:
+        # Initialize the FyersModel instance with your client_id, access_token, and enable async mode
+        fyers = fyersModel.FyersModel(client_id=client_id, is_async=False, token=access_token, log_path="")
+        # Return the response received from the Fyers API
+        return fyers
+    else:
+        #print("noithing here")
+        # return redirect('dashboard')  
+        # Handle the case where access_token is not found in the session
+        pass
+    return None
+
 
 class ProfileView(LoginRequiredMixin, View):
   login_url = '/login'
@@ -288,13 +307,12 @@ class SOD_ReportingView(LoginRequiredMixin, FormView):
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import SOD_EOD_Data
-import datetime
 @csrf_exempt
 def fetch_date_data(request):
     if request.method == 'POST':
         date_str = request.POST.get('date')
         
-        date_obj = datetime.datetime.strptime(date_str, '%d-%m-%Y')
+        date_obj = datetime.strptime(date_str, '%d-%m-%Y')
         #print("date_strdate_strdate_str", date_obj)
         
         data_instance = SOD_EOD_Data.objects.filter(trading_date=date_obj).first()
@@ -465,14 +483,15 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.conf import settings  
+import datetime
 
 
 class TradingCalenderView(LoginRequiredMixin, View):
     login_url = '/login'
 
     def get_first_last_dates(self, year, month):
-        first_date = datetime.datetime(year, month, 1).strftime('%Y-%m-%d')
-        last_date = (datetime.datetime(year, month, calendar.monthrange(year, month)[1])
+        first_date = datetime(year, month, 1).strftime('%Y-%m-%d')
+        last_date = (datetime(year, month, calendar.monthrange(year, month)[1])
                      .strftime('%Y-%m-%d'))
         return first_date, last_date
 
@@ -490,7 +509,7 @@ class TradingCalenderView(LoginRequiredMixin, View):
             response = fyers.get_profile()
 
             # Get current month calendar
-            now = datetime.datetime.now()
+            now = datetime.now()
             year = now.year
             month = now.month
             cal = calendar.monthcalendar(year, month)
@@ -693,7 +712,7 @@ class TradingCalenderView(LoginRequiredMixin, View):
     def get_week_of_year(self, year, month, day):
         # Calculate the nth week of the year if the day is valid for the month
         if 1 <= day <= calendar.monthrange(year, month)[1]:
-            week_number = datetime.datetime(year, month, day).isocalendar()[1]
+            week_number = datetime(year, month, day).isocalendar()[1]
             return week_number
         else:
             return None  # Return None if the day is outside the valid range for the month
@@ -852,15 +871,6 @@ class OptionChainView(LoginRequiredMixin, View):
         # atm_index = (max_serial_number // 2) + 1
 
         atm_index = len(pe_options_sorted) // 2  # Calculate the ATM index
-
-
-
-
-
-
-
-
-
         context.update({
             'access_token': request.session.get('access_token'),
             'forward_trailing_points': forward_trailing_points,
@@ -882,7 +892,9 @@ class OptionChainView(LoginRequiredMixin, View):
             'total_order_status': total_order_status,
             'day_exp_brokerage': exp_brokerage,
             'actual_profit': actual_profit,
-            'options_data': response
+            'options_data': response,
+            'straddle_capital' : conf_data.straddle_capital_usage*2,
+            'straddle_amount_limit' : conf_data.straddle_amount_limit
         })
         return render(request, template, context)
 
@@ -976,7 +988,6 @@ class ConfigureTradingView(LoginRequiredMixin, FormView):
         context['latest_configurations'] = TradingConfigurations.objects.all().order_by('-last_updated')[:1]  # Modify the query as needed
         return context
 
-
 def get_default_lotsize(index):
     if index == 'MIDCPNIFTY':
         return 75
@@ -984,54 +995,404 @@ def get_default_lotsize(index):
         return 40
     elif index == 'NIFTYBANK':
         return 15
-    elif index == 'NIFTY':
+    elif index == 'NIFTY50':
         return 25
     elif index == 'SENSEX':
         return 10
     else:
         return False
 
+# @sync_to_async
+# def get_async_default_lotsize(index):
+#     if index == 'MIDCPNIFTY':
+#         return 75
+#     elif index == 'FINNIFTY':
+#         return 40
+#     elif index == 'NIFTYBANK':
+#         return 15
+#     elif index == 'NIFTY50':
+#         return 25
+#     elif index == 'SENSEX':
+#         return 10
+#     else:
+#         return False
+
+
 
 from decimal import Decimal
-from django.conf import settings
 from django.http import JsonResponse
+from django.db.models import Q
+from decimal import Decimal
+from django.http import JsonResponse
+from django.db.models import Q
+
+# Assume get_data_instance, TradingConfigurations, OpenOrderTempData, and get_default_lotsize are already imported or defined
+
+# def instantBuyOrderWithSL(request):
+#     if request.method == 'POST':
+
+#         # Retrieve data from POST request
+#         der_symbol = request.POST.get('der_symbol')
+#         ex_symbol1 = request.POST.get('ex_symbol1')
+#         ltp = Decimal(request.POST.get('ltp'))
+
+#         # Get necessary instances and configurations
+#         data_instance = get_data_instance(request)
+#         trade_config_data = TradingConfigurations.objects.order_by('-last_updated').only(
+#             'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty','over_trade_status',
+#             'scalping_amount_limit', 'capital_limit_per_order').first()
+
+#         # Early exit if trade configuration is not found
+#         if not trade_config_data:
+#             return JsonResponse({'response': "Trading configuration not found"})
+
+#         get_lot_count = get_default_lotsize(ex_symbol1)
+
+#         # # Fetch all order data and calculate total order count
+#         # allOrderData = data_instance.orderbook()
+#         # total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+
+#         # Check if max order count limit is reached
+#         print('9999999999999999999999999999',  trade_config_data.over_trade_status)
+#         if trade_config_data.over_trade_status == True :
+#             return JsonResponse({'response': "Max Order count limit Reached"})
+
+#         # Check if there are existing orders for different symbols
+#         tempDatainstance = OpenOrderTempData.objects.filter(~Q(symbol=der_symbol)).first()
+#         if tempDatainstance:
+#             return JsonResponse({'response': "Unable to place another Symbol Order Now."})
+
+#         # Calculate order quantity based on mode
+#         if trade_config_data.order_quantity_mode == "MANUAL":
+#             order_qty = trade_config_data.default_order_qty * get_lot_count
+#         elif trade_config_data.order_quantity_mode == "AUTOMATIC":
+#             limit_amount = (trade_config_data.scalping_amount_limit if trade_config_data.scalping_mode
+#                             else trade_config_data.capital_limit_per_order)
+#             per_lot_expense = ltp * get_lot_count
+#             lotqty = Decimal(limit_amount) // per_lot_expense
+#             order_qty = int(lotqty * get_lot_count)
+#             if order_qty == 0:
+#                 return JsonResponse({'response': "Amount Usage Limit Reached"})
+
+#         # Place order
+#         order_data = {
+#             "symbol": der_symbol,
+#             "qty": order_qty,
+#             "type": 2,  # Market Order
+#             "side": 1,  # Buy
+#             "productType": "INTRADAY",
+#             "validity": "DAY",
+#             "offlineOrder": False
+#         }
+
+#         response = data_instance.place_order(data=order_data)
+
+#         if response.get("code") == 1101:
+#             allOrderData = data_instance.orderbook()
+#             total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+
+#             # Check if max order count limit is reached
+#             if total_order_count >= trade_config_data.max_trade_count:
+#                 TradingConfigurations.objects.order_by('-last_updated').update(over_trade_status=True)
+
+#             order_with_status_6 = next((order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol), None)
+#             if tempDatainstance and order_with_status_6:
+#                 exst_qty = tempDatainstance.quantity
+#                 new_qty = order_qty + exst_qty
+#                 total_order_expense = order_qty * ltp
+#                 ext_total_order_expense = Decimal(tempDatainstance.order_total) + total_order_expense
+#                 average_price = ext_total_order_expense / new_qty
+#                 sl_price = tempDatainstance.sl_price
+#                 exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
+#                 is_averaged = tempDatainstance.is_averaged + 1
+
+#                 # Update the attributes directly
+#                 tempDatainstance.order_total = ext_total_order_expense
+#                 tempDatainstance.premium_price = ltp
+#                 tempDatainstance.quantity = new_qty
+#                 tempDatainstance.average_price = average_price
+#                 tempDatainstance.exp_loss = exp_loss
+#                 tempDatainstance.is_averaged = is_averaged
+
+#                 # Save the changes to the database
+#                 tempDatainstance.save()
+#                 modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
+#                 modify_response = data_instance.modify_order(data=modify_data)
+#                 return JsonResponse({'response': modify_response["message"]})
+            
+#             else:
+#                 buy_order_id = response["id"]
+#                 buy_order_data = {"id": buy_order_id}
+#                 order_details = data_instance.orderbook(data=buy_order_data)["orderBook"][0]
+#                 traded_price = Decimal(order_details["tradedPrice"])
+
+#                 stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
+#                 default_stoploss = Decimal(stoplossConf)
+#                 stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+
+#                 stoploss_price = traded_price - (traded_price * default_stoploss / 100)
+#                 stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
+#                 stoploss_price = round(stoploss_price, 2)
+#                 stoploss_limit = stoploss_price - stoploss_limit_slippage
+#                 stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
+#                 stoploss_limit = round(stoploss_limit, 2)
+
+#                 sl_data = {
+#                     "symbol": der_symbol,
+#                     "qty": order_qty,
+#                     "type": 4,  # SL-L Order
+#                     "side": -1,  # Sell
+#                     "productType": "INTRADAY",
+#                     "limitPrice": float(stoploss_limit),
+#                     "stopPrice": float(stoploss_price),
+#                     "validity": "DAY",
+#                     "offlineOrder": False,
+#                 }
+
+#                 stoploss_order_response = data_instance.place_order(data=sl_data)
+#                 print('stoploss_order_responsestoploss_order_response', stoploss_order_response)
+#                 total_purchase_value = traded_price * order_qty
+#                 sl_price = stoploss_price
+#                 exp_loss = (traded_price - sl_price) * order_qty
+
+#                 OpenOrderTempData.objects.create(
+#                     symbol=der_symbol, 
+#                     order_total=total_purchase_value, 
+#                     premium_price=traded_price, 
+#                     average_price=traded_price, 
+#                     quantity=order_qty, 
+#                     sl_price=sl_price, 
+#                     exp_loss=exp_loss, 
+#                     is_averaged=0
+#                 )
+
+#                 if stoploss_order_response["code"] == 1101:
+#                     message = "BUY/SL-L Placed Successfully"
+#                     return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
+#                 elif stoploss_order_response["code"] == -99:
+#                     message = "SL-L not Placed, Insufficient Fund"
+#                     return JsonResponse({'response': message})
+#                 else:
+#                     return JsonResponse({'response': stoploss_order_response["message"]})
+#         elif response["code"] == -99:
+#             return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
+#         else:
+#             return JsonResponse({'response': response["message"]})
+#     else:
+#         message = "Some Error Occurred Before Execution"
+#         return JsonResponse({'response': message})
+    
+
+# import asyncio
+# from django.http import JsonResponse
+# from django.db.models import Q
+# from decimal import Decimal
+# from asgiref.sync import sync_to_async
+
+# async def instantBuyOrderWithSL(request):
+#     if request.method == 'POST':
+
+#         # Retrieve data from POST request
+#         der_symbol = request.POST.get('der_symbol')
+#         ex_symbol1 = request.POST.get('ex_symbol1')
+#         ltp = Decimal(request.POST.get('ltp'))
+
+#         # Get necessary instances and configurations
+#         data_instance = await sync_to_async(get_data_instance)(request)
+#         trade_config_data = await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').only(
+#             'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty', 'over_trade_status',
+#             'scalping_amount_limit', 'capital_limit_per_order').first)()
+
+#         # Early exit if trade configuration is not found
+#         if not trade_config_data:
+#             return JsonResponse({'response': "Trading configuration not found"})
+
+#         get_lot_count = await sync_to_async(get_default_lotsize)(ex_symbol1)
+
+#         # Check if max order count limit is reached
+#         print('9999999999999999999999999999', trade_config_data.over_trade_status)
+#         if trade_config_data.over_trade_status:
+#             return JsonResponse({'response': "Max Order count limit Reached"})
+
+#         # Check if there are existing orders for different symbols
+#         tempDatainstance = await sync_to_async(OpenOrderTempData.objects.filter(~Q(symbol=der_symbol)).first)()
+#         if tempDatainstance:
+#             return JsonResponse({'response': "Unable to place another Symbol Order Now."})
+
+#         # Calculate order quantity based on mode
+#         if trade_config_data.order_quantity_mode == "MANUAL":
+#             order_qty = trade_config_data.default_order_qty * get_lot_count
+#         elif trade_config_data.order_quantity_mode == "AUTOMATIC":
+#             limit_amount = (trade_config_data.scalping_amount_limit if trade_config_data.scalping_mode
+#                             else trade_config_data.capital_limit_per_order)
+#             per_lot_expense = ltp * get_lot_count
+#             lotqty = Decimal(limit_amount) // per_lot_expense
+#             order_qty = int(lotqty * get_lot_count)
+#             if order_qty == 0:
+#                 return JsonResponse({'response': "Amount Usage Limit Reached"})
+
+#         # Place order
+#         order_data = {
+#             "symbol": der_symbol,
+#             "qty": order_qty,
+#             "type": 2,  # Market Order
+#             "side": 1,  # Buy
+#             "productType": "INTRADAY",
+#             "validity": "DAY",
+#             "offlineOrder": False
+#         }
+
+#         response = await sync_to_async(data_instance.place_order)(data=order_data)
+#         response["code"]= 1101 
+
+#         if response.get("code") == 1101:
+#             allOrderData = await sync_to_async(data_instance.orderbook)()
+#             total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+
+#             # Check if max order count limit is reached
+#             if total_order_count >= trade_config_data.max_trade_count:
+#                 await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
+
+#             order_with_status_6 = next((order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol), None)
+#             if tempDatainstance and order_with_status_6:
+#                 exst_qty = tempDatainstance.quantity
+#                 new_qty = order_qty + exst_qty
+#                 total_order_expense = order_qty * ltp
+#                 ext_total_order_expense = Decimal(tempDatainstance.order_total) + total_order_expense
+#                 average_price = ext_total_order_expense / new_qty
+#                 sl_price = tempDatainstance.sl_price
+#                 exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
+#                 is_averaged = tempDatainstance.is_averaged + 1
+
+#                 # Update the attributes directly
+#                 tempDatainstance.order_total = ext_total_order_expense
+#                 tempDatainstance.premium_price = ltp
+#                 tempDatainstance.quantity = new_qty
+#                 tempDatainstance.average_price = average_price
+#                 tempDatainstance.exp_loss = exp_loss
+#                 tempDatainstance.is_averaged = is_averaged
+
+#                 # Save the changes to the database asynchronously
+#                 await sync_to_async(tempDatainstance.save)()
+#                 modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
+#                 modify_response = await sync_to_async(data_instance.modify_order)(data=modify_data)
+#                 return JsonResponse({'response': modify_response["message"]})
+
+#             else:
+#                 buy_order_id = response["id"]
+#                 buy_order_data = {"id": buy_order_id}
+#                 order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
+#                 traded_price = Decimal(order_details["tradedPrice"])
+
+#                 stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
+#                 default_stoploss = Decimal(stoplossConf)
+#                 stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+
+#                 stoploss_price = traded_price - (traded_price * default_stoploss / 100)
+#                 stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
+#                 stoploss_price = round(stoploss_price, 2)
+#                 stoploss_limit = stoploss_price - stoploss_limit_slippage
+#                 stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
+#                 stoploss_limit = round(stoploss_limit, 2)
+
+#                 sl_data = {
+#                     "symbol": der_symbol,
+#                     "qty": order_qty,
+#                     "type": 4,  # SL-L Order
+#                     "side": -1,  # Sell
+#                     "productType": "INTRADAY",
+#                     "limitPrice": float(stoploss_limit),
+#                     "stopPrice": float(stoploss_price),
+#                     "validity": "DAY",
+#                     "offlineOrder": False,
+#                 }
+
+#                 stoploss_order_response = await sync_to_async(data_instance.place_order)(data=sl_data)
+#                 print('stoploss_order_responsestoploss_order_response', stoploss_order_response)
+#                 total_purchase_value = traded_price * order_qty
+#                 sl_price = stoploss_price
+#                 exp_loss = (traded_price - sl_price) * order_qty
+
+#                 await sync_to_async(OpenOrderTempData.objects.create)(
+#                     symbol=der_symbol,
+#                     order_total=total_purchase_value,
+#                     premium_price=traded_price,
+#                     average_price=traded_price,
+#                     quantity=order_qty,
+#                     sl_price=sl_price,
+#                     exp_loss=exp_loss,
+#                     is_averaged=0
+#                 )
+
+#                 if stoploss_order_response["code"] == 1101:
+#                     message = "BUY/SL-L Placed Successfully"
+#                     return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
+#                 elif stoploss_order_response["code"] == -99:
+#                     message = "SL-L not Placed, Insufficient Fund"
+#                     return JsonResponse({'response': message})
+#                 else:
+#                     return JsonResponse({'response': stoploss_order_response["message"]})
+#         elif response["code"] == -99:
+#             return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
+#         else:
+#             return JsonResponse({'response': response["message"]})
+#     else:
+#         message = "Some Error Occurred Before Execution"
+#         return JsonResponse({'response': message})
+
+from asgiref.sync import sync_to_async
+from decimal import Decimal
+from django.http import JsonResponse
+from django.db.models import Q
 from .models import TradingConfigurations, OpenOrderTempData
 
-def instantBuyOrderWithSL(request):
+async def instantBuyOrderWithSL(request):
     if request.method == 'POST':
-        data_instance = get_data_instance(request)
+        # Retrieve data from POST request
         der_symbol = request.POST.get('der_symbol')
-        ex_symbol = request.POST.get('ex_symbol')
         ex_symbol1 = request.POST.get('ex_symbol1')
         ltp = Decimal(request.POST.get('ltp'))
-        get_lot_count = get_default_lotsize(ex_symbol1)
-        trade_config_data = TradingConfigurations.objects.order_by('-last_updated').first()
-        scalping_mode = trade_config_data.scalping_mode
-        allOrderData = data_instance.orderbook()
-        total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
-        max_order_count_limit = trade_config_data.max_trade_count
-        if int(total_order_count) >= int(max_order_count_limit):
-            message = "Max Order count limit Reached"
-            return JsonResponse({'response': message})
-        
-        tempDatainstance = OpenOrderTempData.objects.order_by('-last_updated').first()
-        if tempDatainstance and tempDatainstance.symbol != der_symbol:
-            message = "Unable to place another Symbol Order Now."
-            return JsonResponse({'response': message})
 
+        # Get necessary instances and configurations
+        data_instance = await sync_to_async(get_fyers_data_instance)(request)
+        # Get necessary instances and configurations
+        data_instance = await sync_to_async(get_fyers_data_instance)(request)
+        trade_config_data = await sync_to_async(
+            lambda: TradingConfigurations.objects.order_by('-last_updated').only(
+                'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty', 'over_trade_status',
+                'scalping_amount_limit', 'capital_limit_per_order', 'scalping_stoploss', 'default_stoploss', 'stoploss_limit_slippage'
+            ).first()
+        )()
+
+        # Early exit if trade configuration is not found
+        if not trade_config_data:
+            return JsonResponse({'response': "Trading configuration not found"})
+
+        get_lot_count = await sync_to_async(get_default_lotsize)(ex_symbol1)
+
+        # Check if max order count limit is reached
+        if trade_config_data.over_trade_status:
+            return JsonResponse({'response': "Max Order count limit Reached"})
+
+        # Check if there are existing orders for different symbols
+        tempDatainstance = await sync_to_async(OpenOrderTempData.objects.filter(~Q(symbol=der_symbol)).first)()
+        if tempDatainstance:
+            return JsonResponse({'response': "Unable to place another Symbol Order Now."})
+
+        # Calculate order quantity based on mode
         if trade_config_data.order_quantity_mode == "MANUAL":
             order_qty = trade_config_data.default_order_qty * get_lot_count
-
         elif trade_config_data.order_quantity_mode == "AUTOMATIC":
-            limit_amount = trade_config_data.scalping_amount_limit if scalping_mode else trade_config_data.capital_limit_per_order
+            limit_amount = (trade_config_data.scalping_amount_limit if trade_config_data.scalping_mode
+                            else trade_config_data.capital_limit_per_order)
             per_lot_expense = ltp * get_lot_count
             lotqty = Decimal(limit_amount) // per_lot_expense
             order_qty = int(lotqty * get_lot_count)
             if order_qty == 0:
-                message = "Amount Usage Limit Reached"
-                return JsonResponse({'response': message})
+                return JsonResponse({'response': "Amount Usage Limit Reached"})
 
-        data = {
+        # Place order
+        order_data = {
             "symbol": der_symbol,
             "qty": order_qty,
             "type": 2,  # Market Order
@@ -1041,10 +1402,18 @@ def instantBuyOrderWithSL(request):
             "offlineOrder": False
         }
 
-        response = data_instance.place_order(data=data)
-        
-        if response["code"] == 1101:
-            order_with_status_6 = next((order for order in allOrderData["orderBook"] if order['status'] == 6 and order["symbol"] == der_symbol), None)
+        response = await sync_to_async(data_instance.place_order)(data=order_data)
+        # response["code"] = 1101 
+
+        if response.get("code") == 1101:
+            allOrderData = await sync_to_async(data_instance.orderbook)()
+            total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+
+            # Check if max order count limit is reached
+            if total_order_count >= trade_config_data.max_trade_count:
+                await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
+
+            order_with_status_6 = next((order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol), None)
             if tempDatainstance and order_with_status_6:
                 exst_qty = tempDatainstance.quantity
                 new_qty = order_qty + exst_qty
@@ -1055,26 +1424,27 @@ def instantBuyOrderWithSL(request):
                 exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
                 is_averaged = tempDatainstance.is_averaged + 1
 
-                tempDatainstance.update(
-                    order_total=ext_total_order_expense, 
-                    premium_price=ltp, 
-                    quantity=new_qty, 
-                    average_price=average_price, 
-                    exp_loss=exp_loss, 
-                    is_averaged=is_averaged
-                )
+                # Update the attributes directly
+                tempDatainstance.order_total = ext_total_order_expense
+                tempDatainstance.premium_price = ltp
+                tempDatainstance.quantity = new_qty
+                tempDatainstance.average_price = average_price
+                tempDatainstance.exp_loss = exp_loss
+                tempDatainstance.is_averaged = is_averaged
 
+                # Save the changes to the database asynchronously
+                await sync_to_async(tempDatainstance.save)()
                 modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
-                modify_response = data_instance.modify_order(data=modify_data)
+                modify_response = await sync_to_async(data_instance.modify_order)(data=modify_data)
                 return JsonResponse({'response': modify_response["message"]})
-            
+
             else:
                 buy_order_id = response["id"]
                 buy_order_data = {"id": buy_order_id}
-                order_details = data_instance.orderbook(data=buy_order_data)["orderBook"][0]
+                order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
                 traded_price = Decimal(order_details["tradedPrice"])
 
-                stoplossConf = trade_config_data.scalping_stoploss if scalping_mode else trade_config_data.default_stoploss
+                stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
                 default_stoploss = Decimal(stoplossConf)
                 stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
 
@@ -1091,25 +1461,26 @@ def instantBuyOrderWithSL(request):
                     "type": 4,  # SL-L Order
                     "side": -1,  # Sell
                     "productType": "INTRADAY",
-                    "limitPrice": stoploss_limit,
-                    "stopPrice": stoploss_price,
+                    "limitPrice": float(stoploss_limit),
+                    "stopPrice": float(stoploss_price),
                     "validity": "DAY",
                     "offlineOrder": False,
                 }
 
-                stoploss_order_response = data_instance.place_order(data=sl_data)
+                stoploss_order_response = await sync_to_async(data_instance.place_order)(data=sl_data)
+                print('stoploss_order_responsestoploss_order_response', stoploss_order_response)
                 total_purchase_value = traded_price * order_qty
                 sl_price = stoploss_price
                 exp_loss = (traded_price - sl_price) * order_qty
 
-                OpenOrderTempData.objects.create(
-                    symbol=der_symbol, 
-                    order_total=total_purchase_value, 
-                    premium_price=traded_price, 
-                    average_price=traded_price, 
-                    quantity=order_qty, 
-                    sl_price=sl_price, 
-                    exp_loss=exp_loss, 
+                await sync_to_async(OpenOrderTempData.objects.create)(
+                    symbol=der_symbol,
+                    order_total=total_purchase_value,
+                    premium_price=traded_price,
+                    average_price=traded_price,
+                    quantity=order_qty,
+                    sl_price=sl_price,
+                    exp_loss=exp_loss,
                     is_averaged=0
                 )
 
@@ -1128,7 +1499,6 @@ def instantBuyOrderWithSL(request):
     else:
         message = "Some Error Occurred Before Execution"
         return JsonResponse({'response': message})
-    
 
 
 # STRADDLE WIDGET LIMIT FEATURE 
@@ -1184,6 +1554,7 @@ def StraddleBuyOrderPlacement(request):
         options_data = {"symbol": f"{exchange}{ex_symbol}-INDEX", "strikecount": 2, "timestamp": first_expiry_ts}
         
         # Fetch options data
+        # Fetch options data
         response = data_instance.optionchain(data=options_data)
         if 'error' in response:  # Check for error response
             return JsonResponse({'response': response['error']})
@@ -1193,27 +1564,51 @@ def StraddleBuyOrderPlacement(request):
         # Initialize variables to find closest strike prices
         higher_call_strike = {'strike_price': math.inf, 'data': None}  # Start with infinity for comparison
         lower_put_strike = {'strike_price': -math.inf, 'data': None}   # Start with negative infinity for comparison
+        ce_strike = {'strike_price': None, 'data': None}
+        pe_strike = {'strike_price': None, 'data': None}
 
         # Process options chain data to find closest strikes
         options_chain = response['data']['optionsChain']
 
+        # Debug: Print all options data for inspection
+        for option in options_chain:
+            print(f"itemitemitem {option}")
+
         for option in options_chain:
             strike_price = option['strike_price']
             
-            # Check for higher closest call strike price
-            if option['option_type'] == 'CE' and strike_price > current_strike_price:
-                if strike_price < higher_call_strike['strike_price']:
-                    higher_call_strike['strike_price'] = strike_price
-                    higher_call_strike['data'] = option
+            # # Check for higher closest call strike price
+            # if option['option_type'] == 'CE' and strike_price > current_strike_price:
+            #     if strike_price < higher_call_strike['strike_price']:
+            #         higher_call_strike['strike_price'] = strike_price
+            #         higher_call_strike['data'] = option
             
-            # Check for lower closest put strike price
-            if option['option_type'] == 'PE' and strike_price < current_strike_price:
-                if strike_price > lower_put_strike['strike_price']:
-                    lower_put_strike['strike_price'] = strike_price
-                    lower_put_strike['data'] = option
+            # # Check for lower closest put strike price
+            # if option['option_type'] == 'PE' and strike_price < current_strike_price:
+            #     if strike_price > lower_put_strike['strike_price']:
+            #         lower_put_strike['strike_price'] = strike_price
+            #         lower_put_strike['data'] = option
+
+            # Check for current strike price matches
+            if option['option_type'] == 'PE' and strike_price == current_strike_price:
+                pe_strike['strike_price'] = strike_price
+                pe_strike['data'] = option
+
+            if option['option_type'] == 'CE' and strike_price == current_strike_price:
+                ce_strike['strike_price'] = strike_price
+                ce_strike['data'] = option
+
+        # Debug: Print found closest and matching strikes
+        print(f"Higher Call Strike: {higher_call_strike}")
+        print(f"Lower Put Strike: {lower_put_strike}")
+        print(f"Current PE Strike: {pe_strike}")
+        print(f"Current CE Strike: {ce_strike}")
 
         # Prepare the result as a list of dictionaries containing strike price and data
-        result = [higher_call_strike['data'], lower_put_strike['data'] ]
+        # result = [higher_call_strike['data'], lower_put_strike['data'], pe_strike['data'], ce_strike['data']]
+        result = [pe_strike['data'], ce_strike['data']]
+
+
         ltp_less_than_limit = True
         for item in result:
             print("itemitemitem", item)
@@ -1259,7 +1654,7 @@ def StraddleBuyOrderPlacement(request):
                     "qty": order_qty,
                     "type": 2,  # Market Order
                     "side": 1,  # Buy
-                    "productType": "INTRADAY",
+                    "productType": "MARGIN",
                     "validity": "DAY",
                     "offlineOrder": False
                 }

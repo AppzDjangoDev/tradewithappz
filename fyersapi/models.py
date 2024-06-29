@@ -49,6 +49,7 @@ class TradingConfigurations(models.Model):
     scalping_ratio = models.IntegerField(null=True)
     straddle_amount_limit = models.IntegerField(null=True)
     straddle_capital_usage = models.IntegerField(null=True)
+    over_trade_status = models.BooleanField(default=False)
 
 
     def __str__(self):

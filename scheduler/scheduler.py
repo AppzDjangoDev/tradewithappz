@@ -201,13 +201,22 @@ def automate_eod_task():
         logger.error(f"Error running scheduled task: {e}")
 
 
+def resetovertradestatus():
+    logger.info("Scheduled task is running.")
+    try:
+        TradingConfigurations.objects.order_by('-last_updated').update(over_trade_status=False)
+        # # Create a fake request object
+    except Exception as e:
+        logger.error(f"Error running scheduled task: {e}")
+
+
 def start():
     scheduler = BackgroundScheduler()
     scheduler.add_job(automate_sod_task, CronTrigger(hour=9, minute=15))
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.add_job(automate_eod_task, CronTrigger(hour=15, minute=00))
+    scheduler.add_job(resetovertradestatus, CronTrigger(hour=8, minute=35))
     # scheduler.add_job(automate_eod_task,CronTrigger(day_of_week='mon-fri',hour='9-15', minute=30))
-
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.start()
     logger.info("Scheduler started.")

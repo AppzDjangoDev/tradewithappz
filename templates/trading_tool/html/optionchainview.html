@@ -233,11 +233,14 @@
                         <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
                         <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
                         <h5 class="card-title text-muted fw-bolder mb-0">
-                                <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STRADDLE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STRADDLE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 1px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ straddle_capital }} - {{straddle_amount_limit}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+
                             <br>
                             <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;&nbsp;&nbsp;{{ option.strike_price }}</p>
                         </h5>
                         <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
+
                     </div>
                     <div class="col-4 d-flex justify-content-center align-items-center">
                         <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
@@ -577,6 +580,7 @@
                     icon: "error",
                     title: "Some error occurred!",
                     showConfirmButton: false,
+                    timerProgressBar: true,
                     timer: 1500,
                 });
                 fetchSessionDataAndUpdateUI();

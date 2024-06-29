@@ -10,7 +10,7 @@ class TradingConfigurationsForm(forms.ModelForm):
     class Meta:
         model = TradingConfigurations
         fields = '__all__'
-        exclude = ['scalping_mode'] 
+        exclude = ['scalping_mode', 'over_trade_status'] 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
