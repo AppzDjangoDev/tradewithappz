@@ -50,6 +50,7 @@ class TradingConfigurations(models.Model):
     straddle_amount_limit = models.IntegerField(null=True)
     straddle_capital_usage = models.IntegerField(null=True)
     over_trade_status = models.BooleanField(default=False)
+    averaging_qty =  models.IntegerField(default=0) 
 
 
     def __str__(self):

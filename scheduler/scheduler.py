@@ -109,13 +109,6 @@ def automate_sod_task():
 def automate_eod_task():
     logger.info("Scheduled task is running.")
     try:
-        # # Create a fake request object
-        # factory = RequestFactory()
-        # request = factory.get('/fake-path/')
-        # # Apply session middleware
-        # middleware = SessionMiddleware()
-        # middleware.process_request(request)
-        # request.session.save()
         token_data = CommonConfig.objects.filter(param="access_token").get()
         access_token = token_data.value
         client_id = settings.FYERS_APP_ID

@@ -120,13 +120,13 @@
                             </div>
                             <div class="container-fluid my-2 pt-4">
                                 <div class="row">
-                                    <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
+                                    <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
                                         <button id="switch_scalp_mode" class="btn btn-dark  spinner btn-lg btn-block w-100 h-100 fw-bold" style="border-radius: 10px;">Checking..</button>
                                     </div>
-                                    <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
+                                    {% comment %} <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
                                         <button  id="trailingwithlimit" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-up text-success"></i>{{forward_trailing_points}}</button>
-                                    </div>   
-                                    <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
+                                    </div>    {% endcomment %}
+                                    <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
                                         <button id="trailingtodown" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-down text-warning"></i>{{reverse_trailing_points}}</button>
                                     </div>
                                 </div>
@@ -219,8 +219,7 @@
     </div>
 
     {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
-
-    {% for option in pe_options_with_serial %}
+ {% comment %} {% for option in pe_options_with_serial %}
     {% if option.option_type == "PE" and  forloop.counter0 == atm_index %}
         <div class="alert alert-primary straddle" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
             <div class="row">
@@ -247,8 +246,37 @@
                     </div>
                 </div>
             </div>
-        {% endif %}
-    {% endfor %}
+    {% endif %}
+{% endfor %}  {% endcomment %}
+
+
+
+<div class="alert alert-primary straddle" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
+    <div class="row">
+        <div class="col-4 d-flex justify-content-center align-items-center">
+            <button  id="trailingwithlimit" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-up text-success"></i>{{forward_trailing_points}}</button>
+        </div>
+            <div class="col-4 text-center">
+                {% comment %} <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
+                <input type="hidden" name="straddle_strike" value="{{ option.strike_price }}">
+                <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
+                <input type="hidden" name="opt-ltp" value="{{ option.ltp }}"> {% endcomment %}
+                <h5 class="card-title text-muted fw-bolder mb-0">
+                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OPEN POSITION &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        {% comment %} <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 1px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ straddle_capital }} - {{straddle_amount_limit}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> {% endcomment %}
+
+                    <br>
+                    <p id="openAmountData1" class="mb-0 mt-2 fs-5 fw-bolder">DEPLOYED &nbsp;&nbsp;&nbsp;: &nbsp; &nbsp; No Positions</p>
+                    {% comment %} <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;&nbsp;&nbsp;{{ option.strike_price }}</p> {% endcomment %}
+                </h5>
+                {% comment %} <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p> {% endcomment %}
+
+            </div>
+            <div class="col-4 d-flex justify-content-center align-items-center">
+                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 partial-sell-button" style="border-radius: 6px">Partial Sell</button>
+            </div>
+        </div>
+</div>
 
     {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
 
@@ -658,6 +686,61 @@
             });
         });
 
+     // =======================================================================================================================================
+
+
+        $('.partial-sell-button').click(function(e) {
+            e.preventDefault();
+            var csrfToken = $('meta[name="csrf-token"]').attr('content');
+            var $this = $(this);
+            $this.prop('disabled', true).text('Closing...');
+            
+            // Add your AJAX call here
+            $.ajax({
+                type: 'GET',  // Adjust the request type as needed
+                url: '{% url "partial_exit_positions" %}',
+            }).done(function(response) {
+                console.log('Position closed successfully.', response);
+                swal({
+                    position: "top-end",
+                    icon: "success",
+                    title: response.message,
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+
+                // Cache frequently accessed elements
+                // var parentDivElement = document.getElementById('openPlData').parentElement;
+                // var openQtyInput = document.querySelector('input[name="open-qty"]');
+                // var openSymbolInput = document.querySelector('input[name="open-symbol"]');
+                // var openTradedPriceInput = document.querySelector('input[name="open-traded-price"]');
+                // var openPlDataElement = document.getElementById('openPlData');
+                // var openAmountDataElement = document.getElementById('openAmountData');
+                // var expLossAmountElement = document.getElementById('expLossAmount');
+                // var openOrderDataElement = document.getElementById('openOrderData');
+
+                // Fetch session data and update UI
+                fetchSessionDataAndUpdateUI();
+
+                // Reconnect WebSocket and fetch additional data if necessary
+                reconnectWebSocket();
+                fetchData();
+            }).fail(function(xhr, status, error) {
+                console.error('Failed to close position. Error:', error);
+                
+                swal({
+                    position: "top-end",
+                    icon: "error",
+                    title: "Some error occurred!",
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+            }).always(function() {
+                // Reset button text after AJAX completes (success or error)
+                $this.prop('disabled', false).text('Partial Sell');
+            });
+        });
+
         // =======================================================================================================================================
 
 
@@ -689,6 +772,7 @@
                 var openTradedPriceInput = document.querySelector('input[name="open-traded-price"]');
                 var openPlDataElement = document.getElementById('openPlData');
                 var openAmountDataElement = document.getElementById('openAmountData');
+                var openAmountData1Element = document.getElementById('openAmountData1');
                 var expLossAmountElement = document.getElementById('expLossAmount');
                 var openOrderDataElement = document.getElementById('openOrderData');
 
@@ -700,6 +784,7 @@
                 openTradedPriceInput.value = '';
                 openPlDataElement.innerHTML = 'P&L DATA &nbsp;: &nbsp; &nbsp; No Positions';
                 openAmountDataElement.innerHTML = 'DEPLOYED  &nbsp;: &nbsp; &nbsp; No Positions';
+                openAmountData1Element.innerHTML = 'DEPLOYED  &nbsp;: &nbsp; &nbsp; No Positions';
                 expLossAmountElement.innerHTML = 'POSITIONS &nbsp;: &nbsp; &nbsp; No Positions';
                 openOrderDataElement.innerHTML = 'EXP LOSS  &nbsp;: &nbsp; &nbsp; No Positions';
 
@@ -727,6 +812,9 @@
 
     });
     // =======================================================================================================================================
+
+
+    
         // Get a reference to the refresh_page button
         var refreshButton = document.getElementById('refresh_page');
 
@@ -997,6 +1085,8 @@
                     document.getElementById('openOrderData').innerHTML = 'QTY:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ' + open_qty + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +  'LTP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + open_traded_price;
 
                     document.getElementById('openAmountData').innerHTML =  modifiedString1 + '&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+ total_order_amount + '&nbsp;&nbsp;INR' ;
+                    document.getElementById('openAmountData1').innerHTML =  modifiedString1 + '&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QTY:&nbsp;&nbsp;'+ open_qty + '&nbsp;&nbsp;' ;
+
                     //document.getElementById('expLossAmount').innerHTML = 'EXP LOSS :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + exp_loss +'&nbsp;&nbsp;&nbsp;&nbsp;(' + sl_price +')';
                     //document.getElementById('openOrderData').innerHTML = 'OPEN LTP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + open_qty  + '&nbsp;&nbsp;&nbsp;&nbsp;(' + open_traded_price  +')';
                 }
@@ -1016,42 +1106,48 @@
 </script>
 <script>
     $(document).ready(function() {
-    $('#trailingwithlimit').click(function(e) {
-        e.preventDefault();
-        console.log('Position closed successfully.');
-
-        $.ajax({
-            type: 'GET',  // Adjust the request type as needed
-            url: '{% url "trailingwithlimit" %}',
-            success: function(response) {
-                // Handle success response if needed
-                console.log('Position closed successfully.', response.message);
+        $('#trailingwithlimit').click(function(e) {
+            e.preventDefault();
+            var csrfToken = $('meta[name="csrf-token"]').attr('content');
+            var $this = $(this);
+            $this.prop('disabled', true).text('Processing...');
+    
+            $.ajax({
+                type: 'GET',  // Adjust the request type as needed
+                url: '{% url "trailingwithlimit" %}',
+            }).done(function(response) {
+                console.log('Position closed successfully.', response);
+                $this.prop('disabled', false).text('Trailing with Limit');
+                swal({
+                    position: "top-end",
+                    icon: "success",
+                    title: response.message,
+                    showConfirmButton: false,
+                    timer: 4000,
+                });
+    
                 fetchSessionDataAndUpdateUI();
-                swal({
-                  position: "top-end",
-                  icon: "success",
-                  title: response.message,
-                  showConfirmButton: false,
-                  timer: 4000
-                })
-               
-            },
-            error: function(xhr, status, error) {
-                // Handle error response if needed
+    
+                // Reconnect WebSocket and fetch additional data if necessary
+                reconnectWebSocket();
+                fetchData();
+            }).fail(function(xhr, status, error) {
                 console.error('Failed to close position. Error:', error);
+    
                 swal({
-                  position: "top-end",
-                  icon: "error",
-                  title: "some error occured!",
-                  showConfirmButton: false,
-                  timer: 4000
-                })
-               
-            }
+                    position: "top-end",
+                    icon: "error",
+                    title: "Some error occurred!",
+                    showConfirmButton: false,
+                    timer: 4000,
+                });
+            }).always(function() {
+                // Reset button text after AJAX completes (success or error)
+                $this.prop('disabled', false).text('Trailing with Limit');
+            });
         });
     });
-  });
-</script>
+</script>    
 
 <script>
   $(document).ready(function() {

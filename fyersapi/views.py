@@ -138,6 +138,109 @@ def get_accese_token_store_session(request):
     # You can redirect to another page or render a template after #printing
     return redirect('dashboard')  # Assuming 'home' is the name of a URL pattern you want to redirect to
 
+def partial_exit_positions(request):
+    client_id = settings.FYERS_APP_ID
+    access_token = request.session.get('access_token')
+    
+    if not access_token:
+        return redirect('dashboard')
+    
+    trade_config_data = TradingConfigurations.objects.order_by('-last_updated').only(
+        'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty', 
+        'over_trade_status', 'scalping_amount_limit', 'capital_limit_per_order'
+    ).first()
+    
+    fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
+    order_data = fyers.orderbook()
+    
+    orders_with_status_6 = [
+        {"id": order["id"]} for order in order_data["orderBook"] if order["status"] == 6
+    ]
+    order_symbol_data = [
+        {"symbol": order["symbol"], "qty": order["qty"]} for order in order_data["orderBook"] if order["status"] == 6
+    ]
+    
+    if not order_symbol_data:
+        message = "No open positions/ Orders"
+        messages.error(request, message)
+        return JsonResponse({'message': message})
+    
+    order_symbol = order_symbol_data[0]['symbol']
+    order_qty = order_symbol_data[0]['qty']
+    partial_qty = math.ceil(order_qty * 0.5)
+    remain_qty = order_qty - partial_qty
+    
+    if orders_with_status_6:
+        order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
+        messages.success(request, order_cancel_response)
+    else:
+        messages.success(request, "No pending orders to cancel.")
+    
+    sell_order_data = {
+        "symbol": order_symbol,
+        "qty": partial_qty,
+        "type": 2,  # Market Order
+        "side": 2,  # Buy
+        "productType": "INTRADAY",
+        "validity": "DAY",
+        "offlineOrder": False
+    }
+    
+    response = fyers.place_order(data=sell_order_data)
+    response["code"] = 1101 
+    if response.get("code") == 1101:
+        open_order_data = OpenOrderTempData.objects.filter(symbol=order_symbol).first()
+        traded_price = open_order_data.average_price
+        if remain_qty == 0 :
+            OpenOrderTempData.objects.all().delete()
+        else:
+            open_order_data.quantity = remain_qty
+            open_order_data.save()
+        
+        stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
+        default_stoploss = Decimal(stoplossConf)
+        stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+        
+        stoploss_price = traded_price - (traded_price * default_stoploss / 100)
+        stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
+        stoploss_price = round(stoploss_price, 2)
+        
+        stoploss_limit = stoploss_price - stoploss_limit_slippage
+        stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
+        stoploss_limit = round(stoploss_limit, 2)
+        
+        sl_data = {
+            "symbol": order_symbol,
+            "qty": remain_qty,
+            "type": 4,  # SL-L
+            "side": -1,  # Sell
+            "productType": "INTRADAY",
+            "limitPrice": float(stoploss_limit),
+            "stopPrice": float(stoploss_price),
+            "validity": "DAY",
+            "offlineOrder": False,
+        }
+        
+        stoploss_order_response = fyers.place_order(data=sl_data)
+        if stoploss_order_response["code"] == 1101:
+            message = "BUY/SL-L Placed Successfully"
+            return JsonResponse({'response': message, 'symbol': order_symbol, 'qty': order_qty, 'traded_price': traded_price})
+        elif stoploss_order_response["code"] == -99:
+            message = "SL-L not Placed, Insufficient Fund"
+            return JsonResponse({'response': message})
+        else:
+            return JsonResponse({'response': stoploss_order_response["message"]})
+    
+    if 'message' in response:
+        message = response['message']
+        messages.success(request, message)
+        OpenOrderTempData.objects.all().delete()
+        return JsonResponse({'message': message, 'code': response['code']})
+    else:
+        message = "Error: Response format is unexpected"
+        messages.error(request, message)
+        return JsonResponse({'message': message, 'code': response['code']})
+
 
 
 def close_all_positions(request):
@@ -1354,13 +1457,13 @@ async def instantBuyOrderWithSL(request):
         ltp = Decimal(request.POST.get('ltp'))
 
         # Get necessary instances and configurations
-        data_instance = await sync_to_async(get_fyers_data_instance)(request)
+        # data_instance = await sync_to_async(get_fyers_data_instance)(request)
         # Get necessary instances and configurations
         data_instance = await sync_to_async(get_fyers_data_instance)(request)
         trade_config_data = await sync_to_async(
             lambda: TradingConfigurations.objects.order_by('-last_updated').only(
                 'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty', 'over_trade_status',
-                'scalping_amount_limit', 'capital_limit_per_order', 'scalping_stoploss', 'default_stoploss', 'stoploss_limit_slippage'
+                'scalping_amount_limit', 'capital_limit_per_order', 'scalping_stoploss', 'default_stoploss', 'stoploss_limit_slippage','averaging_qty'
             ).first()
         )()
 
@@ -1376,12 +1479,19 @@ async def instantBuyOrderWithSL(request):
 
         # Check if there are existing orders for different symbols
         tempDatainstance = await sync_to_async(OpenOrderTempData.objects.filter(~Q(symbol=der_symbol)).first)()
+        tempDatainstance1 = await sync_to_async(OpenOrderTempData.objects.filter(Q(symbol=der_symbol)).first)()
+
         if tempDatainstance:
             return JsonResponse({'response': "Unable to place another Symbol Order Now."})
 
         # Calculate order quantity based on mode
         if trade_config_data.order_quantity_mode == "MANUAL":
-            order_qty = trade_config_data.default_order_qty * get_lot_count
+            if tempDatainstance1:
+                config_qty = trade_config_data.averaging_qty
+            else:
+                config_qty = trade_config_data.default_order_qty
+            order_qty = config_qty * get_lot_count
+
         elif trade_config_data.order_quantity_mode == "AUTOMATIC":
             limit_amount = (trade_config_data.scalping_amount_limit if trade_config_data.scalping_mode
                             else trade_config_data.capital_limit_per_order)
@@ -1403,12 +1513,10 @@ async def instantBuyOrderWithSL(request):
         }
 
         response = await sync_to_async(data_instance.place_order)(data=order_data)
-        # response["code"] = 1101 
 
         if response.get("code") == 1101:
             allOrderData = await sync_to_async(data_instance.orderbook)()
             total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
-
             # Check if max order count limit is reached
             if total_order_count >= trade_config_data.max_trade_count:
                 await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
@@ -1525,7 +1633,6 @@ from django.http import JsonResponse
 from .models import TradingConfigurations, OpenOrderTempData
 from datetime import datetime, time
 import pytz
-# satheesh 
 from django.http import JsonResponse
 from decimal import Decimal
 import math
@@ -1553,7 +1660,6 @@ def StraddleBuyOrderPlacement(request):
         first_expiry_ts = expiry_response['data']['expiryData'][0]['expiry']
         options_data = {"symbol": f"{exchange}{ex_symbol}-INDEX", "strikecount": 2, "timestamp": first_expiry_ts}
         
-        # Fetch options data
         # Fetch options data
         response = data_instance.optionchain(data=options_data)
         if 'error' in response:  # Check for error response
@@ -1604,7 +1710,6 @@ def StraddleBuyOrderPlacement(request):
         print(f"Current PE Strike: {pe_strike}")
         print(f"Current CE Strike: {ce_strike}")
 
-        # Prepare the result as a list of dictionaries containing strike price and data
         # result = [higher_call_strike['data'], lower_put_strike['data'], pe_strike['data'], ce_strike['data']]
         result = [pe_strike['data'], ce_strike['data']]
 
@@ -1667,13 +1772,6 @@ def StraddleBuyOrderPlacement(request):
     else:
         message = "Some Error Occurred Before Execution"
         return JsonResponse({'response': message})
-        
-    # except Exception as e:
-    #     error_message = f'Error occurred: {str(e)}'
-    #     messages.error(request, error_message)
-    #     return JsonResponse({'response': error_message})
-
-
 
 
 
@@ -1748,8 +1846,6 @@ def trailingwithlimit(request):
         return JsonResponse({'message': message})
     
     return redirect('dashboard')
-
-
 
 def trailingtodown(request):
     client_id = settings.FYERS_APP_ID

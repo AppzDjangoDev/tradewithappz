@@ -30,6 +30,8 @@ urlpatterns = [
 
     path('close_all_positions', views.close_all_positions, name='close_all_positions'),
     path('update-data-instance/', views.update_data_instance, name='update_data_instance'),
+    path('partial_exit_positions', views.partial_exit_positions, name='partial_exit_positions'),
+ 
 
     # order history
     path('order-history/', views.OrderHistory.as_view(), name='order_history'),
