@@ -643,43 +643,6 @@
   </script>
 
   {% endblock %}
-  <script>
-      $(document).ready(function() {
-      $('#trailingwithlimit').click(function(e) {
-          e.preventDefault();
-          console.log('Position closed successfully.');
-
-          $.ajax({
-              type: 'GET',  // Adjust the request type as needed
-              url: '{% url "trailingwithlimit" %}',
-              success: function(response) {
-                  // Handle success response if needed
-                  console.log('Position closed successfully.', response.message);
-                  swal({
-                    position: "top-end",
-                    icon: "success",
-                    title: response.message,
-                    showConfirmButton: false,
-                    timer: 500
-                  })
-                 
-              },
-              error: function(xhr, status, error) {
-                  // Handle error response if needed
-                  console.error('Failed to close position. Error:', error);
-                  swal({
-                    position: "top-end",
-                    icon: "error",
-                    title: "some error occured!",
-                    showConfirmButton: false,
-                    timer: 500
-                  })
-                 
-              }
-          });
-      });
-    });
-  </script>
 
   <script>
     $(document).ready(function() {

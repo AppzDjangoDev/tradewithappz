@@ -121,7 +121,7 @@
                             <div class="container-fluid my-2 pt-4">
                                 <div class="row">
                                     <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
-                                        <button id="switch_scalp_mode" class="btn btn-dark  spinner btn-lg btn-block w-100 h-100 fw-bold" style="border-radius: 10px;">Checking..</button>
+                                        <button id="switch_scalp_mode" class="btn btn-info  spinner btn-lg btn-block w-100 h-100 fw-bold" style="border-radius: 10px;">Checking..</button>
                                     </div>
                                     {% comment %} <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
                                         <button  id="trailingwithlimit" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-up text-success"></i>{{forward_trailing_points}}</button>
@@ -262,11 +262,11 @@
                 <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
                 <input type="hidden" name="opt-ltp" value="{{ option.ltp }}"> {% endcomment %}
                 <h5 class="card-title text-muted fw-bolder mb-0">
-                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OPEN POSITION &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OPEN &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                         {% comment %} <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 1px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ straddle_capital }} - {{straddle_amount_limit}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> {% endcomment %}
 
                     <br>
-                    <p id="openAmountData1" class="mb-0 mt-2 fs-5 fw-bolder">DEPLOYED &nbsp;&nbsp;&nbsp;: &nbsp; &nbsp; No Positions</p>
+                    <p id="openAmountData1" class="mb-0 mt-2 fs-5 fw-bolder">DEPLOYED</p>
                     {% comment %} <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;&nbsp;&nbsp;{{ option.strike_price }}</p> {% endcomment %}
                 </h5>
                 {% comment %} <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p> {% endcomment %}
@@ -784,7 +784,7 @@
                 openTradedPriceInput.value = '';
                 openPlDataElement.innerHTML = 'P&L DATA &nbsp;: &nbsp; &nbsp; No Positions';
                 openAmountDataElement.innerHTML = 'DEPLOYED  &nbsp;: &nbsp; &nbsp; No Positions';
-                openAmountData1Element.innerHTML = 'DEPLOYED  &nbsp;: &nbsp; &nbsp; No Positions';
+                openAmountData1Element.innerHTML = 'DEPLOYED  &nbsp;s';
                 expLossAmountElement.innerHTML = 'POSITIONS &nbsp;: &nbsp; &nbsp; No Positions';
                 openOrderDataElement.innerHTML = 'EXP LOSS  &nbsp;: &nbsp; &nbsp; No Positions';
 
@@ -1231,10 +1231,10 @@
         success: function(response) {
             // Set the initial state of the button based on the response
             if (response.scalping_mode) {
-                $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
+                $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
                 document.getElementById('switch_scalp_mode').innerHTML="SCALP</br>"+response.capital;
             } else {
-                $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
+                $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
                 document.getElementById('switch_scalp_mode').innerHTML="NORMAL</br>"+response.capital
             }
         },
@@ -1260,10 +1260,10 @@
                 // Handle success response if needed
                 console.log('scalping_modescalping_modescalping_mode', response.scalping_mode)
                 if (response.scalping_mode) {
-                    $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
+                    $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
                     document.getElementById('switch_scalp_mode').innerHTML="SCALP</br>"+response.capital;
                 } else {
-                    $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
+                    $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
                     document.getElementById('switch_scalp_mode').innerHTML="NORMAL</br>"+response.capital
                 }
                 swal({

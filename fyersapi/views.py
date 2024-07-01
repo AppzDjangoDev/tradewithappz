@@ -1522,7 +1522,7 @@ async def instantBuyOrderWithSL(request):
                 await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
 
             order_with_status_6 = next((order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol), None)
-            if tempDatainstance and order_with_status_6:
+            if tempDatainstance1 and order_with_status_6:
                 exst_qty = tempDatainstance.quantity
                 new_qty = order_qty + exst_qty
                 total_order_expense = order_qty * ltp
