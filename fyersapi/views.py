@@ -1466,7 +1466,7 @@ async def instantBuyOrderWithSL(request):
                 'scalping_amount_limit', 'capital_limit_per_order', 'scalping_stoploss', 'default_stoploss', 'stoploss_limit_slippage','averaging_qty'
             ).first()
         )()
-
+        
         # Early exit if trade configuration is not found
         if not trade_config_data:
             return JsonResponse({'response': "Trading configuration not found"})
@@ -1513,6 +1513,8 @@ async def instantBuyOrderWithSL(request):
         }
 
         response = await sync_to_async(data_instance.place_order)(data=order_data)
+        # print('777777777777777777777777777777777777')
+        # response['code'] = 1101
 
         if response.get("code") == 1101:
             allOrderData = await sync_to_async(data_instance.orderbook)()
@@ -1521,28 +1523,35 @@ async def instantBuyOrderWithSL(request):
             if total_order_count >= trade_config_data.max_trade_count:
                 await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
 
-            order_with_status_6 = next((order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol), None)
-            if tempDatainstance1 and order_with_status_6:
-                exst_qty = tempDatainstance.quantity
+            order_with_status_6 = next(
+                (order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol),
+                None
+            )           
+            print('order_with_status_6order_with_status_6', order_with_status_6)
+            if order_with_status_6:
+                print('77777777777777777777777777777777777777777777777777777777777777777777777777777777777777')
+                exst_qty = order_with_status_6['qty']
                 new_qty = order_qty + exst_qty
-                total_order_expense = order_qty * ltp
-                ext_total_order_expense = Decimal(tempDatainstance.order_total) + total_order_expense
+                total_order_expense = new_qty * ltp
+                ext_total_order_expense = Decimal(tempDatainstance1.order_total) + total_order_expense
                 average_price = ext_total_order_expense / new_qty
-                sl_price = tempDatainstance.sl_price
+                
+                sl_price = tempDatainstance1.sl_price
                 exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
-                is_averaged = tempDatainstance.is_averaged + 1
+                is_averaged = tempDatainstance1.is_averaged + 1
 
                 # Update the attributes directly
-                tempDatainstance.order_total = ext_total_order_expense
-                tempDatainstance.premium_price = ltp
-                tempDatainstance.quantity = new_qty
-                tempDatainstance.average_price = average_price
-                tempDatainstance.exp_loss = exp_loss
-                tempDatainstance.is_averaged = is_averaged
+                tempDatainstance1.order_total = ext_total_order_expense
+                tempDatainstance1.premium_price = ltp
+                tempDatainstance1.quantity = new_qty
+                tempDatainstance1.average_price = average_price
+                tempDatainstance1.exp_loss = exp_loss
+                tempDatainstance1.is_averaged = is_averaged
 
                 # Save the changes to the database asynchronously
-                await sync_to_async(tempDatainstance.save)()
+                await sync_to_async(tempDatainstance1.save)()
                 modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
+                print('modify_datamodify_data', modify_data)
                 modify_response = await sync_to_async(data_instance.modify_order)(data=modify_data)
                 return JsonResponse({'response': modify_response["message"]})
 
