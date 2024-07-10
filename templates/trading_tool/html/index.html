@@ -207,7 +207,7 @@
             {% for item in fund_data.fund_limit %}
             {% if item.id == 10 %}
                 <a href="#" class="btn btn-success fw-semibold lh-sm my-4 mx-2">Available Balance:{{ item.equityAmount|floatformat:2 }}</a>
-                <button id="updatelatestdata" target="_blank" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">Update Now</button>
+                <button id="updatebrokerdata" target="_blank" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">Loading...</button>
             {% endif %}
             {% endfor %}
               <li class="nav-item dropdown">
@@ -602,44 +602,70 @@
       });
     });
 
+  </script>
+  <script>
     $(document).ready(function() {
-      $('#updatelatestdata').click(function(e) {
-          e.preventDefault();
-          console.log('Position closed successfully.');
-
-          $.ajax({
-              type: 'GET',  // Adjust the request type as needed
-              url: '{% url "update_latest_data" %}',
-              success: function(response) {
-                  // Handle success response if needed
-                  console.log('Saved successfully.', response);
-                  swal("Saved successfully.", response, "success");
-              },
-              error: function(xhr, status, error) {
-                  // Handle error response if needed
-                  console.error('Failed to close position. Error:', error);
-                  swal("Data Not Saved", "Some Error Occured", "error");
-              }
-          });
-      });
-    });
-
-    function disableButtonAtFour() {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-    
-        console.log("now now ", currentHour);
-    
-        // Check if it's after 4:00 PM
-        if (currentHour >= 16) {
-            $('#updatelatestdata').prop('disabled', true); // Disable the button
+      $.ajax({
+        type: 'GET',  // Adjust the request type as needed
+        url: '{% url "get_broker_state" %}',  // URL for fetching the initial state
+        success: function(response) {
+            // Set the initial state of the button based on the response
+            if (response.active_broker === 'DHAN') {
+                $('#updatebrokerdata').addClass('btn-info').removeClass('btn-info');
+                document.getElementById('updatebrokerdata').innerHTML = "DHAN";
+            } else {
+                $('#updatebrokerdata').addClass('btn-info').removeClass('btn-info');
+                document.getElementById('updatebrokerdata').innerHTML = "FYERS";
+            }
+        },
+        error: function(xhr, status, error) {
+            // Handle error response if needed
+            console.error('Failed to fetch broker state. Error:', error);
+            swal({
+                position: "top-end",
+                icon: "error",
+                title: "Failed to fetch broker state!",
+                showConfirmButton: false,
+                timer: 500
+            });
         }
-    }
-    // Call the function initially
-    disableButtonAtFour();
-    // Set an interval to check every minute (adjust as needed)
-    setInterval(disableButtonAtFour, 300 * 1000); // 60 seconds * 1000 milliseconds
+    });
+    $('#updatebrokerdata').click(function(e) {
+      e.preventDefault();
+  
+      $.ajax({
+          type: 'GET',
+          url: '{% url "switch_broker" %}',
+          success: function(response) {
+              if (response.active_broker === 'DHAN') {
+                  $('#updatebrokerdata').addClass('btn-info').removeClass('btn-info');
+                  document.getElementById('updatebrokerdata').innerHTML = "DHAN";
+              } else {
+                  $('#updatebrokerdata').addClass('btn-info').removeClass('btn-info');
+                  document.getElementById('updatebrokerdata').innerHTML = "FYERS";
+              }
+              swal({
+                  position: "top-end",
+                  icon: "success",
+                  title: "Active broker switched to " + response.active_broker,
+                  showConfirmButton: false,
+                  timer: 500
+              });
+          },
+          error: function(xhr, status, error) {
+              console.error('Failed to switch broker. Error:', error);
+              swal({
+                  position: "top-end",
+                  icon: "error",
+                  title: "Some error occurred!",
+                  showConfirmButton: false,
+                  timer: 500
+              });
+            }
+        });
+    });
+  
+    });
   </script>
 
   {% endblock %}

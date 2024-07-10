@@ -19,10 +19,17 @@ class TradingData(models.Model):
 class TradingConfigurations(models.Model):
     MANUAL = 'MANUAL'
     AUTOMATIC = 'AUTOMATIC'
+
+    DHAN = 'DHAN'
+    FYERS = 'FYERS'
     
     ORDER_QUANTITY_MODE_CHOICES = [
         (MANUAL, 'Manual'),
         (AUTOMATIC, 'Automatic'),
+    ]
+    BROKERS = [
+        (DHAN, 'DHAN'),
+        (FYERS, 'FYERS'),
     ]
     
     default_stoploss = models.DecimalField(max_digits=7, decimal_places=2, default=0)  # Field for default stoploss
@@ -41,7 +48,7 @@ class TradingConfigurations(models.Model):
     order_quantity_mode = models.CharField(
         max_length=10,
         choices=ORDER_QUANTITY_MODE_CHOICES,
-        default=MANUAL,
+        default=DHAN,
     )
     scalping_amount_limit = models.IntegerField(default=0)
     scalping_mode =  models.BooleanField(default=False)
@@ -51,7 +58,11 @@ class TradingConfigurations(models.Model):
     straddle_capital_usage = models.IntegerField(null=True)
     over_trade_status = models.BooleanField(default=False)
     averaging_qty =  models.IntegerField(default=0) 
-
+    active_broker = models.CharField(
+        max_length=10,
+        choices=BROKERS,
+        default=DHAN,
+    )
 
     def __str__(self):
         return f"Trading Configurations - ID: {self.pk}"

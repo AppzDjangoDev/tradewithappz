@@ -65,6 +65,9 @@ urlpatterns = [
     path('switch_scalp_mode/', views.switch_scalp_mode, name='switch_scalp_mode'),
     path('remove_session_data/', views.remove_session_data, name='remove_session_data'),
 
+    path('get_broker_state/', views.get_broker_state, name='get_broker_state'),
+    path('switch_broker/', views.switch_broker, name='switch_broker'),
+
 
     
 

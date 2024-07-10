@@ -142,44 +142,10 @@
         <div class="container-fluid m-0">
             <div class="row mt-1">   
                 {% comment %} and option.serial_number != 4   {% endcomment %}
-                <div class="col-sm-6 my-1">
-                    {% for option in ce_options_with_serial %}
-                    {% if option.option_type == "CE" %}
-                        <div class="alert alert-success" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
-                            <div class="row">
-                                <div class="col-4 d-flex justify-content-center align-items-center">
-                                    <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button" style="border-radius: 6px">Buy</button>
-                                </div>
-            
-                                <div class="col-4 text-center">
-                                    <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
-                                    <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
-                                    <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
-            
-                                    <h5 class="card-title text-muted fw-bolder mb-0">
-                                        {% if forloop.counter0 == atm_index %}
-                                            <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                        {% elif forloop.counter0 < atm_index %}
-                                            <span style="color: white; background-color: #3597fff7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;{{ atm_index|subtract:forloop.counter0 }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                        {% elif forloop.counter0 > atm_index %}
-                                            <span style="color: white; background-color: #3597fff7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;OTM&nbsp;&nbsp;&nbsp;{{ forloop.counter0|subtract:atm_index }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                        {% endif %}
-                                        <br>
-                                        <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;CE&nbsp;&nbsp;{{ option.strike_price }}</p>
-                                    </h5>
-                                    <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
-                                </div>
-                                <div class="col-4 d-flex justify-content-center align-items-center">
-                                    <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
-                                </div>
-                            </div>
-                        </div>        
-                    {% endif %}
-                {% endfor %}
-            </div>
+
             <div class="col-sm-6 my-2">
                 {% for option in pe_options_with_serial %}
-                {% if option.option_type == "PE" %}
+                {% if option.option_type == "PE" and not  forloop.counter0 > atm_index %}
                     <div class="alert alert-danger" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
                         <div class="row">
                             <div class="col-4 d-flex justify-content-center align-items-center">
@@ -211,11 +177,46 @@
             {% endfor %}
             
             </div>
-            </div>
-            </ul>
-            </div>
+            <div class="col-sm-6 my-1">
+                {% for option in ce_options_with_serial %}
+                {% if option.option_type == "CE" and not forloop.counter0 > atm_index %}
+                    <div class="alert alert-success" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
+                        <div class="row">
+                            <div class="col-4 d-flex justify-content-center align-items-center">
+                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button" style="border-radius: 6px">Buy</button>
+                            </div>
+        
+                            <div class="col-4 text-center">
+                                <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
+                                <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
+                                <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
+        
+                                <h5 class="card-title text-muted fw-bolder mb-0">
+                                    {% if forloop.counter0 == atm_index %}
+                                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                    {% elif forloop.counter0 < atm_index %}
+                                        <span style="color: white; background-color: #3597fff7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;{{ atm_index|subtract:forloop.counter0 }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                    {% elif forloop.counter0 > atm_index %}
+                                        <span style="color: white; background-color: #3597fff7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;OTM&nbsp;&nbsp;&nbsp;{{ forloop.counter0|subtract:atm_index }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                    {% endif %}
+                                    <br>
+                                    <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;CE&nbsp;&nbsp;{{ option.strike_price }}</p>
+                                </h5>
+                                <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
+                            </div>
+                            <div class="col-4 d-flex justify-content-center align-items-center">
+                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
+                            </div>
+                        </div>
+                    </div>        
+                {% endif %}
+            {% endfor %}
         </div>
         </div>
+        </ul>
+        </div>
+    </div>
+    </div>
     </div>
 
     {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
@@ -784,7 +785,7 @@
                 openTradedPriceInput.value = '';
                 openPlDataElement.innerHTML = 'P&L DATA &nbsp;: &nbsp; &nbsp; No Positions';
                 openAmountDataElement.innerHTML = 'DEPLOYED  &nbsp;: &nbsp; &nbsp; No Positions';
-                openAmountData1Element.innerHTML = 'DEPLOYED  &nbsp;s';
+                openAmountData1Element.innerHTML = 'DEPLOYED  &nbsp;';
                 expLossAmountElement.innerHTML = 'POSITIONS &nbsp;: &nbsp; &nbsp; No Positions';
                 openOrderDataElement.innerHTML = 'EXP LOSS  &nbsp;: &nbsp; &nbsp; No Positions';
 

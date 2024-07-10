@@ -15,7 +15,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from fyersapi.models import TradingConfigurations, TradingData
 from fyersapi.views import brokerconnect, calculate_tax, get_accese_token_store_session, get_data_instance
-from scheduler.scheduler import automate_sod_task, automate_eod_task
+from scheduler.scheduler import automate_sod_task, automate_eod_task 
 from .forms import CustomUserCreationForm
 from django.contrib.auth import authenticate, login
 from decimal import Decimal

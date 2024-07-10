@@ -214,7 +214,7 @@ class FyersIndexDataConsumer(WebsocketConsumer):
             if first_expiry_ts:
                 options_data = {
                     "symbol":self.symbols[0],
-                    "strikecount": 2,
+                    "strikecount": 4,
                     "timestamp": first_expiry_ts
                 }
 

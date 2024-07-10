@@ -26,6 +26,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
 import datetime
 from asgiref.sync import sync_to_async
+from dhanhq import dhanhq
+from django.views.decorators.http import require_GET
+
 
 
 class Brokerconfig(LoginRequiredMixin, View):
@@ -40,6 +43,19 @@ def brokerconnect(request):
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
+
+    # Add your Dhan Client ID and Access Token
+    dhan_client_id = settings.DHAN_CLIENTID
+    dhan_access_token = settings.DHAN_ACCESS_TOKEN
+
+    dhan = dhanhq(dhan_client_id,dhan_access_token)
+    # Get fund limits
+    fund__data = dhan.get_fund_limits()
+
+    print("*********************************************************")
+    print(fund__data)
+    print("*********************************************************")
+
     # Replace these values with your actual API credentials
     # redirect_uri = "https://tradewithappz.co.in/dashboard"
     # redirect_uri = "https://aabe-2405-201-f007-417b-7d9c-6736-527b-61a6.ngrok-free.app/dashboard"
@@ -52,6 +68,8 @@ def brokerconnect(request):
         redirect_uri=redirect_uri,
         response_type=response_type
     )
+        
+    # dhan = dhanhq("client_id","access_token")
     # Generate the auth code using the session model
     response = session.generate_authcode()
     # #print the auth code received in the response
@@ -242,46 +260,125 @@ def partial_exit_positions(request):
         return JsonResponse({'message': message, 'code': response['code']})
 
 
-
+from asgiref.sync import sync_to_async
 def close_all_positions(request):
-    client_id = settings.FYERS_APP_ID
-    access_token = request.session.get('access_token')
-    
-    if not access_token:
-        return redirect('dashboard')
-    
-    fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
-    order_data = fyers.orderbook()
+    confData = TradingConfigurations.objects.order_by('-last_updated').only('active_broker').first()
+    active_broker = confData.active_broker
+    print('active_brokeractive_brokeractive_broker', confData.active_broker)
 
-    # Collect order IDs with status 6 using list comprehension
-    orders_with_status_6 = [{"id": order.get("id")} for order in order_data["orderBook"] if order["status"] == 6]
+    if active_broker == "FYERS":
+        client_id = settings.FYERS_APP_ID
+        access_token = request.session.get('access_token')
+        
+        if not access_token:
+            return redirect('dashboard')
+        
+        fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
+        order_data = fyers.orderbook()
 
-    if orders_with_status_6:
-        order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
-        messages.success(request, order_cancel_response)
+        # Collect order IDs with status 6 using list comprehension
+        orders_with_status_6 = [{"id": order.get("id")} for order in order_data["orderBook"] if order["status"] == 6]
+
+        if orders_with_status_6:
+            order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
+            messages.success(request, order_cancel_response)
+        else:
+            messages.success(request, "No pending orders to cancel.")
+
+        # Exit positions
+        data = {
+            "segment": [11],
+            "side": [1],
+            "productType": ["INTRADAY"]
+        }
+        response = fyers.exit_positions(data=data)
+
+        if 'message' in response:
+            message = response['message']
+            messages.success(request, message)
+            OpenOrderTempData.objects.all().delete()
+            return JsonResponse({'message': message, 'code': response['code']})
+        else:
+            message = "Error: Response format is unexpected"
+            messages.error(request, message)
+            return JsonResponse({'message': message, 'code': response.get('code', 'unknown')})
+        
+    elif active_broker == "DHAN":
+        dhan_client_id = settings.DHAN_CLIENTID
+        dhan_access_token = settings.DHAN_ACCESS_TOKEN
+
+        dhan = dhanhq(dhan_client_id, dhan_access_token)
+        # get Order Listing : Pending 
+        orderlist = dhan.get_order_list()
+        get_pending_order_data = get_pending_orders_dhan(orderlist)
+
+        print("get_pending_order_dataget_pending_order_dataget_pending_order_data", get_pending_order_data)
+
+        # CLOSE ALL PENDING ORDERS
+        if get_pending_order_data:
+            sl_order_id_list =[]
+            for sl_order_data in get_pending_order_data['data']:
+                sl_order_id = sl_order_data['orderId']
+                sl_order_id_list.append(sl_order_id)
+
+            for id in sl_order_id_list:
+                cancel_order_response = dhan.cancel_order(id)
+
+            if cancel_order_response['status'] == 'failure':
+                return JsonResponse({'message': 'S-L updation failed !',  'code': '-99'})
+            
+            close_response = get_position_close_process(dhan)
+
+            print("close_responseclose_responseclose_response", close_response)
+
+            if close_response == False:
+                return JsonResponse({'message': 'NO Open Positions','code': '-99'})
+            
+            if close_response['status'] == 'success':
+                return JsonResponse({'message': 'SUccessfully Close Positions','code': '-99'})
+            
+            return JsonResponse({'message': 'Cannot Close Positions',  'code': '-99'})
+
+        else: 
+            # GET POSITION AND CLOSE IT 
+            close_response = get_position_close_process(dhan)
+
+            print("close_responseclose_responseclose_response", close_response)
+
+            if close_response == False:
+                return JsonResponse({'message': 'NO Open Positions','code': '-99'})
+            
+            if close_response['status'] == 'success':
+                return JsonResponse({'message': 'SUccessfully Close Order','code': '-99'})
+
+            return JsonResponse({'message': 'Cannot Close Positions',  'code': '-99'})
     else:
-        messages.success(request, "No pending orders to cancel.")
+        return JsonResponse({'message': 'Invalid broker', 'code': '-1'})
 
-    # Exit positions
-    data = {
-        "segment": [11],
-        "side": [1],
-        "productType": ["INTRADAY"]
-    }
-    response = fyers.exit_positions(data=data)
 
-    if 'message' in response:
-        message = response['message']
-        messages.success(request, message)
-        OpenOrderTempData.objects.all().delete()
-        return JsonResponse({'message': message, 'code': response['code']})
+
+def get_position_close_process(dhan):
+    open_positions  = dhan.get_positions()
+    print("open_positionsopen_positionsopen_positions", open_positions)
+    if open_positions['data'] == []:
+        return False
+    
     else:
-        message = "Error: Response format is unexpected"
-        messages.error(request, message)
-        return JsonResponse({'message': message, 'code': response['code']})
+        securityId = open_positions['data']['securityId']
+        quantity = open_positions['data']['quantity']
 
+        close_response = dhan.place_order(security_id=securityId,  #NiftyPE
+                exchange_segment=dhan.NSE_FNO,
+                transaction_type=dhan.SELL,
+                quantity=quantity,
+                order_type=dhan.MARKET,
+                product_type=dhan.INTRA,
+                price=0)
+        
+        return close_response
 
 def get_data_instance(request):
+
     context={}
     template="trading_tool/html/profile_view.html"
     client_id = settings.FYERS_APP_ID
@@ -938,7 +1035,7 @@ class OptionChainView(LoginRequiredMixin, View):
             messages.error(request, error_message)
             return redirect('login')
 
-        options_data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 2, "timestamp": first_expiry_ts}
+        options_data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 4, "timestamp": first_expiry_ts}
 
         try:
             response = data_instance.optionchain(data=options_data)
@@ -1451,6 +1548,7 @@ from .models import TradingConfigurations, OpenOrderTempData
 
 async def instantBuyOrderWithSL(request):
     if request.method == 'POST':
+        
         # Retrieve data from POST request
         der_symbol = request.POST.get('der_symbol')
         ex_symbol1 = request.POST.get('ex_symbol1')
@@ -1460,9 +1558,14 @@ async def instantBuyOrderWithSL(request):
         # data_instance = await sync_to_async(get_fyers_data_instance)(request)
         # Get necessary instances and configurations
         data_instance = await sync_to_async(get_fyers_data_instance)(request)
+        dhan_client_id = settings.DHAN_CLIENTID
+        dhan_access_token = settings.DHAN_ACCESS_TOKEN
+
+        dhan = dhanhq(dhan_client_id,dhan_access_token)
+
         trade_config_data = await sync_to_async(
             lambda: TradingConfigurations.objects.order_by('-last_updated').only(
-                'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty', 'over_trade_status',
+                'scalping_mode', 'max_trade_count', 'order_quantity_mode', 'default_order_qty', 'over_trade_status','active_broker',
                 'scalping_amount_limit', 'capital_limit_per_order', 'scalping_stoploss', 'default_stoploss', 'stoploss_limit_slippage','averaging_qty'
             ).first()
         )()
@@ -1500,122 +1603,351 @@ async def instantBuyOrderWithSL(request):
             order_qty = int(lotqty * get_lot_count)
             if order_qty == 0:
                 return JsonResponse({'response': "Amount Usage Limit Reached"})
+        # Example conditional logic for different APIs
+        if trade_config_data.active_broker == 'FYERS':
+            # Place order
+            order_data = {
+                "symbol": der_symbol,
+                "qty": order_qty,
+                "type": 2,  # Market Order
+                "side": 1,  # Buy
+                "productType": "INTRADAY",
+                "validity": "DAY",
+                "offlineOrder": False
+            }
 
-        # Place order
-        order_data = {
-            "symbol": der_symbol,
-            "qty": order_qty,
-            "type": 2,  # Market Order
-            "side": 1,  # Buy
-            "productType": "INTRADAY",
-            "validity": "DAY",
-            "offlineOrder": False
-        }
+            response = await sync_to_async(data_instance.place_order)(data=order_data)
+            # print('777777777777777777777777777777777777')
+            # response['code'] = 1101
 
-        response = await sync_to_async(data_instance.place_order)(data=order_data)
-        # print('777777777777777777777777777777777777')
-        # response['code'] = 1101
+            if response.get("code") == 1101:
+                allOrderData = await sync_to_async(data_instance.orderbook)()
+                total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
+                # Check if max order count limit is reached
+                if total_order_count >= trade_config_data.max_trade_count:
+                    await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
 
-        if response.get("code") == 1101:
-            allOrderData = await sync_to_async(data_instance.orderbook)()
-            total_order_count = sum(1 for order in allOrderData.get("orderBook", []) if order["status"] == 2)
-            # Check if max order count limit is reached
-            if total_order_count >= trade_config_data.max_trade_count:
-                await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
+                order_with_status_6 = next(
+                    (order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol),
+                    None
+                )           
+                print('order_with_status_6order_with_status_6', order_with_status_6)
+                if order_with_status_6:
+                    print('77777777777777777777777777777777777777777777777777777777777777777777777777777777777777')
+                    exst_qty = order_with_status_6['qty']
+                    new_qty = order_qty + exst_qty
+                    total_order_expense = new_qty * ltp
+                    ext_total_order_expense = Decimal(tempDatainstance1.order_total) + total_order_expense
+                    average_price = ext_total_order_expense / new_qty
+                    
+                    sl_price = tempDatainstance1.sl_price
+                    exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
+                    is_averaged = tempDatainstance1.is_averaged + 1
 
-            order_with_status_6 = next(
-                (order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol),
-                None
-            )           
-            print('order_with_status_6order_with_status_6', order_with_status_6)
-            if order_with_status_6:
-                print('77777777777777777777777777777777777777777777777777777777777777777777777777777777777777')
-                exst_qty = order_with_status_6['qty']
-                new_qty = order_qty + exst_qty
-                total_order_expense = new_qty * ltp
-                ext_total_order_expense = Decimal(tempDatainstance1.order_total) + total_order_expense
-                average_price = ext_total_order_expense / new_qty
-                
-                sl_price = tempDatainstance1.sl_price
-                exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
-                is_averaged = tempDatainstance1.is_averaged + 1
+                    # Update the attributes directly
+                    tempDatainstance1.order_total = ext_total_order_expense
+                    tempDatainstance1.premium_price = ltp
+                    tempDatainstance1.quantity = new_qty
+                    tempDatainstance1.average_price = average_price
+                    tempDatainstance1.exp_loss = exp_loss
+                    tempDatainstance1.is_averaged = is_averaged
 
-                # Update the attributes directly
-                tempDatainstance1.order_total = ext_total_order_expense
-                tempDatainstance1.premium_price = ltp
-                tempDatainstance1.quantity = new_qty
-                tempDatainstance1.average_price = average_price
-                tempDatainstance1.exp_loss = exp_loss
-                tempDatainstance1.is_averaged = is_averaged
+                    # Save the changes to the database asynchronously
+                    await sync_to_async(tempDatainstance1.save)()
+                    modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
+                    print('modify_datamodify_data', modify_data)
+                    modify_response = await sync_to_async(data_instance.modify_order)(data=modify_data)
+                    return JsonResponse({'response': modify_response["message"]})
 
-                # Save the changes to the database asynchronously
-                await sync_to_async(tempDatainstance1.save)()
-                modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
-                print('modify_datamodify_data', modify_data)
-                modify_response = await sync_to_async(data_instance.modify_order)(data=modify_data)
-                return JsonResponse({'response': modify_response["message"]})
-
-            else:
-                buy_order_id = response["id"]
-                buy_order_data = {"id": buy_order_id}
-                order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
-                traded_price = Decimal(order_details["tradedPrice"])
-
-                stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
-                default_stoploss = Decimal(stoplossConf)
-                stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
-
-                stoploss_price = traded_price - (traded_price * default_stoploss / 100)
-                stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
-                stoploss_price = round(stoploss_price, 2)
-                stoploss_limit = stoploss_price - stoploss_limit_slippage
-                stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
-                stoploss_limit = round(stoploss_limit, 2)
-
-                sl_data = {
-                    "symbol": der_symbol,
-                    "qty": order_qty,
-                    "type": 4,  # SL-L Order
-                    "side": -1,  # Sell
-                    "productType": "INTRADAY",
-                    "limitPrice": float(stoploss_limit),
-                    "stopPrice": float(stoploss_price),
-                    "validity": "DAY",
-                    "offlineOrder": False,
-                }
-
-                stoploss_order_response = await sync_to_async(data_instance.place_order)(data=sl_data)
-                print('stoploss_order_responsestoploss_order_response', stoploss_order_response)
-                total_purchase_value = traded_price * order_qty
-                sl_price = stoploss_price
-                exp_loss = (traded_price - sl_price) * order_qty
-
-                await sync_to_async(OpenOrderTempData.objects.create)(
-                    symbol=der_symbol,
-                    order_total=total_purchase_value,
-                    premium_price=traded_price,
-                    average_price=traded_price,
-                    quantity=order_qty,
-                    sl_price=sl_price,
-                    exp_loss=exp_loss,
-                    is_averaged=0
-                )
-
-                if stoploss_order_response["code"] == 1101:
-                    message = "BUY/SL-L Placed Successfully"
-                    return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
-                elif stoploss_order_response["code"] == -99:
-                    message = "SL-L not Placed, Insufficient Fund"
-                    return JsonResponse({'response': message})
                 else:
-                    return JsonResponse({'response': stoploss_order_response["message"]})
-        elif response["code"] == -99:
-            return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
-        else:
-            return JsonResponse({'response': response["message"]})
+                    buy_order_id = response["id"]
+                    buy_order_data = {"id": buy_order_id}
+                    order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
+                    traded_price = Decimal(order_details["tradedPrice"])
+
+                    stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
+                    default_stoploss = Decimal(stoplossConf)
+                    stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+
+                    stoploss_price = traded_price - (traded_price * default_stoploss / 100)
+                    stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
+                    stoploss_price = round(stoploss_price, 2)
+                    stoploss_limit = stoploss_price - stoploss_limit_slippage
+                    stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
+                    stoploss_limit = round(stoploss_limit, 2)
+
+                    sl_data = {
+                        "symbol": der_symbol,
+                        "qty": order_qty,
+                        "type": 4,  # SL-L Order
+                        "side": -1,  # Sell
+                        "productType": "INTRADAY",
+                        "limitPrice": float(stoploss_limit),
+                        "stopPrice": float(stoploss_price),
+                        "validity": "DAY",
+                        "offlineOrder": False,
+                    }
+
+                    stoploss_order_response = await sync_to_async(data_instance.place_order)(data=sl_data)
+                    print('stoploss_order_responsestoploss_order_response', stoploss_order_response)
+                    total_purchase_value = traded_price * order_qty
+                    sl_price = stoploss_price
+                    exp_loss = (traded_price - sl_price) * order_qty
+
+                    await sync_to_async(OpenOrderTempData.objects.create)(
+                        symbol=der_symbol,
+                        order_total=total_purchase_value,
+                        premium_price=traded_price,
+                        average_price=traded_price,
+                        quantity=order_qty,
+                        sl_price=sl_price,
+                        exp_loss=exp_loss,
+                        is_averaged=0
+                    )
+
+                    if stoploss_order_response["code"] == 1101:
+                        message = "BUY/SL-L Placed Successfully"
+                        return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
+                    elif stoploss_order_response["code"] == -99:
+                        message = "SL-L not Placed, Insufficient Fund"
+                        return JsonResponse({'response': message})
+                    else:
+                        return JsonResponse({'response': stoploss_order_response["message"]})
+            elif response["code"] == -99:
+                return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
+            else:
+                return JsonResponse({'response': response["message"]})
+        elif trade_config_data.active_broker == 'DHAN':
+
+            orderlist = dhan.get_order_list()
+            print('orderlistorderlistorderlist', orderlist)
+
+            # Dhan API specific logic
+            
+            # print('der_symbol', der_symbol)
+            # print('ex_symbol1', ex_symbol1)
+            # print('ltp', ltp)
+            formated_der_symbol , formatted_expiry_date = convert_derivative_symbol(der_symbol, ex_symbol1)
+            
+            csv_result = search_csv(formated_der_symbol , formatted_expiry_date)
+            print('*********************************************************************************', csv_result)
+            security_id = csv_result[0]['SEM_SMST_SECURITY_ID']
+            print('*********************************************************************************', security_id)
+
+            # Place an order for NSE Futures & Options
+            buy_response = dhan.place_order(security_id=security_id,  #NiftyPE
+                exchange_segment=dhan.NSE_FNO,
+                transaction_type=dhan.BUY,
+                quantity=order_qty,
+                order_type=dhan.MARKET,
+                product_type=dhan.INTRA,
+                price=0,
+                validity= dhan.DAY,
+                )
+            
+            print('buy_responsebuy_responsebuy_response', buy_response['remarks']['message'])
+
+            if buy_response['status'] == 'failure':
+                return JsonResponse({'message': buy_response['remarks']['message'], 'symbol': der_symbol, 'code': '-99'})
+            
+            elif buy_response['status'] == 'success':
+                order_id = buy_response['data']['orderId'],
+                status = buy_response['data']['orderStatus'],
+                quantity = buy_response['data']['quantity'],
+                price = buy_response['data']['price'],
+                triggerPrice = buy_response['data']['triggerPrice'],
+                get_pending_order_data = get_pending_orders_dhan(orderlist)
+                if get_pending_order_data:
+                    sl_order_id = get_pending_order_data['data']['orderId']
+                    sl_order_qty = get_pending_order_data['data']['quantity']
+                    updated_qty = sl_order_qty + order_qty
+                    sl_updated_response = dhan.modify_order(
+                        order_id = sl_order_id,
+                        order_type = dhan.SL,
+                        leg_name = '',
+                        price = price,
+                        triggerPrice = triggerPrice,
+                        quantity = updated_qty,
+                        validity = dhan.DAY
+                    )
+                    if sl_updated_response['status'] == 'failure':
+                        return JsonResponse({'message': 'S-L updation failed !', 'symbol': der_symbol, 'code': '-99'})
+                    elif sl_updated_response['status'] == 'success':
+                        total_order_expense = updated_qty * ltp
+                        ext_total_order_expense = Decimal(tempDatainstance1.order_total) + total_order_expense
+                        average_price = ext_total_order_expense / new_qty
+                        
+                        sl_price = tempDatainstance1.sl_price
+                        exp_loss = (Decimal(average_price) - Decimal(sl_price)) * Decimal(new_qty)
+                        is_averaged = tempDatainstance1.is_averaged + 1
+
+                        # Update the attributes directly
+                        tempDatainstance1.order_total = ext_total_order_expense
+                        tempDatainstance1.premium_price = ltp
+                        tempDatainstance1.quantity = new_qty
+                        tempDatainstance1.average_price = average_price
+                        tempDatainstance1.exp_loss = exp_loss
+                        tempDatainstance1.is_averaged = is_averaged
+
+                        # Save the changes to the database asynchronously
+                        await sync_to_async(tempDatainstance1.save)()
+
+                        message = "BUY/SL-L Placed Successfully"
+                        return JsonResponse({'message': message, 'symbol': der_symbol,})
+
+                if not get_pending_order_data and status == 'TRANSIT' :
+                    buy_order_data = dhan.get_order_by_id(order_id)
+                    traded_price = Decimal(buy_order_data['data']['price'])
+                    stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
+                    default_stoploss = Decimal(stoplossConf)
+                    stoploss_limit_slippage = Decimal(trade_config_data.stoploss_limit_slippage)
+
+                    stoploss_price = traded_price - (traded_price * default_stoploss / 100)
+                    stoploss_price = round(stoploss_price / Decimal(0.05)) * Decimal(0.05)
+                    stoploss_price = round(stoploss_price, 2)
+                    stoploss_limit = stoploss_price - stoploss_limit_slippage
+                    stoploss_limit = round(stoploss_limit / Decimal(0.05)) * Decimal(0.05)
+                    stoploss_limit = round(stoploss_limit, 2)
+
+                    # Place an order for NSE Futures & Options SL ORDER
+                    sl_response = dhan.place_order(security_id=security_id,  #NiftyPE
+                        exchange_segment=dhan.NSE_FNO,
+                        transaction_type=dhan.SELL,
+                        quantity=quantity,
+                        order_type=dhan.SL,
+                        product_type=dhan.INTRA,
+                        price=stoploss_limit,
+                        triggerPrice=stoploss_price,
+                        validity= dhan.DAY,
+                        )
+                    if sl_response['status'] == 'failure':
+                        return JsonResponse({'message': 'S-L order not placed !', 'symbol': der_symbol, 'code': '-99'})
+                    
+                    elif sl_response['status'] == 'success':
+                        total_purchase_value = traded_price * order_qty
+                        sl_price = stoploss_price
+                        exp_loss = (traded_price - sl_price) * order_qty
+                        await sync_to_async(OpenOrderTempData.objects.create)(
+                            symbol=der_symbol,
+                            order_total=total_purchase_value,
+                            premium_price=traded_price,
+                            average_price=traded_price,
+                            quantity=order_qty,
+                            sl_price=sl_price,
+                            exp_loss=exp_loss,
+                            is_averaged=0
+                        )
+                        message = "BUY/SL-L Placed Successfully"
+                        return JsonResponse({'message': message, 'symbol': der_symbol, 'qty': quantity, 'traded_price': traded_price})
+
+            message = "Some Error Occurred Before Execution"
+            return JsonResponse({'message': message})
+        
     else:
         message = "Some Error Occurred Before Execution"
-        return JsonResponse({'response': message})
+        return JsonResponse({'message': message})
+
+
+def get_pending_orders_dhan(response):
+    # Check if the response contains 'data'
+    if 'data' not in response:
+        return None
+
+    # Filter orders with 'orderStatus' as 'PENDING'
+    pending_orders = [order for order in response['data'] if order.get('orderStatus') == 'PENDING']
+
+    return pending_orders
+    
+
+
+import pandas as pd
+from django.http import JsonResponse
+from datetime import datetime
+
+def search_csv(formated_der_symbol, formatted_expiry_date):
+    print("formated_der_symbol:", formated_der_symbol)
+    print("formatted_expiry_date:", formatted_expiry_date)
+    file_path = settings.CSV_FILE_PATH
+    
+    try:
+        # Read the CSV file into a pandas DataFrame
+        df = pd.read_csv(file_path)
+
+        # Filter the DataFrame based on SEM_TRADING_SYMBOL matching formated_der_symbol
+        filtered_df = df[df['SEM_TRADING_SYMBOL'] == formated_der_symbol]
+
+        # Filter further based on SEM_EXPIRY_DATE matching formatted_expiry_date
+        filtered_df = filtered_df[filtered_df['SEM_EXPIRY_DATE'] == formatted_expiry_date]
+
+        # Convert the filtered data to a list of dictionaries (JSON serializable format)
+        results = filtered_df.to_dict('records')
+       
+        return results
+
+    except FileNotFoundError:
+        return JsonResponse({'error': 'CSV file not found'}, status=404)
+    except Exception as e:
+        print("Error:", e)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+    
+from datetime import datetime, time
+
+def convert_derivative_symbol(der_symbol, ex_symbol1):
+    parts = der_symbol.split(':')
+    if len(parts) != 2:
+        return "Invalid symbol format"
+
+    details = parts[1]
+
+    # Extract option type
+    option_type = details[-2:]
+
+    # Extract strike price (last 5 digits before option type)
+    strike_price = details[-7:-2]
+
+    # Remove option type, strike price, and ex_symbol1 from the details
+    substrings_to_remove = [option_type, strike_price, ex_symbol1]
+    modified_string = details
+    for substring in substrings_to_remove:
+        modified_string = modified_string.replace(substring, '')
+
+    # What remains is the expiry date
+    expiry_date = modified_string
+
+    # Format expiry date (assuming yyMMdd or yymmdd format)
+    if len(expiry_date) == 5:
+        year = expiry_date[:2]
+        month = expiry_date[2:3]  # Take only one character for month
+        day = expiry_date[3:]     # Remaining characters for day
+    elif len(expiry_date) == 6:
+        year = expiry_date[:2]
+        month = expiry_date[2:4]  # Take two characters for month
+        day = expiry_date[4:6]    # Two characters for day
+
+    # Map month number to month abbreviation
+    months = {
+        '1': 'Jan', '2': 'Feb', '3': 'Mar', '4': 'Apr', '5': 'May', '6': 'Jun',
+        '7': 'Jul', '8': 'Aug', '9': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
+    }
+
+    # Get the month abbreviation in title case
+    translated_month = months.get(month, '')
+
+    month = month.zfill(2)
+
+    year = "20" + year
+
+    # Construct the translated expiry date in format YYYY-MM-DD HH:MM:SS
+    formatted_expiry_date = f"{year}-{month}-{day} 14:30:00"
+
+    # Construct the translated symbol
+    translated_symbol = f"{ex_symbol1}-{translated_month}{year}-{strike_price}-{option_type}"
+
+    return translated_symbol, formatted_expiry_date
+
+
 
 
 # STRADDLE WIDGET LIMIT FEATURE 
@@ -1667,7 +1999,7 @@ def StraddleBuyOrderPlacement(request):
             return JsonResponse({'response': expiry_response['error']})
 
         first_expiry_ts = expiry_response['data']['expiryData'][0]['expiry']
-        options_data = {"symbol": f"{exchange}{ex_symbol}-INDEX", "strikecount": 2, "timestamp": first_expiry_ts}
+        options_data = {"symbol": f"{exchange}{ex_symbol}-INDEX", "strikecount": 4, "timestamp": first_expiry_ts}
         
         # Fetch options data
         response = data_instance.optionchain(data=options_data)
@@ -2104,6 +2436,28 @@ def switch_scalp_mode(request):
 
     else:
         return JsonResponse({'error': 'Invalid request method.'}, status=400)
+    
+
+@require_GET
+def switch_broker(request):
+    # Fetch the latest TradingConfigurations entry
+    confData = TradingConfigurations.objects.order_by('-last_updated').first()
+    if confData:
+        # Toggle the active_broker value
+        if confData.active_broker == 'DHAN':
+            confData.active_broker = 'FYERS'
+        else:
+            confData.active_broker = 'DHAN'
+        
+        # Save the updated configuration
+        confData.save()
+        
+        # Return the updated active_broker value as a JsonResponse
+        return JsonResponse({'active_broker': confData.active_broker})
+    else:
+        print("No TradingConfigurations entry found.")
+        # Return an error if no entry is found
+        return JsonResponse({'error': 'No configuration found.'}, status=404)
 
 
 def get_scalp_mode_state(request):
@@ -2126,3 +2480,24 @@ def get_scalp_mode_state(request):
 
 
 
+
+def get_broker_state(request):
+    # Fetch the latest TradingConfigurations entry
+    confData = TradingConfigurations.objects.order_by('-last_updated').first()
+    if confData:
+        print("Entry - Toggling active_broker")
+        
+        # Toggle the active_broker value
+        if confData.active_broker == 'DHAN':
+            confData.active_broker = 'FYERS'
+        else:
+            confData.active_broker = 'DHAN'
+        
+        confData.save()
+        
+        # Return the updated value as a JsonResponse
+        return JsonResponse({'active_broker': confData.active_broker})
+    else:
+        print("No TradingConfigurations entry found.")
+        # Return an error if no entry is found
+        return JsonResponse({'error': 'No configuration found.'}, status=404)

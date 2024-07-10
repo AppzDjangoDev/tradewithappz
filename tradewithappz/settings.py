@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'account',
     'trading_tool',
     'fyersapi',
+    'dhan_api',
     "channels",
     'django_cron',
     'scheduler',
@@ -179,6 +180,12 @@ MEDIA_DIRS = [ os.path.join(BASE_DIR, 'media') ]
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Define the path to your CSV file
+CSV_FILE_PATH = os.path.join(BASE_DIR, 'security_list.csv')
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -216,7 +223,15 @@ STATUS_DESCRIPTIONS = {
 
 FYERS_APP_ID="H9O406XBXW-100"
 FYERS_SECRET_ID="XOVF82L85V"
-FYERS_REDIRECT_URL= "https://bb63-2401-4900-6152-7c16-448c-7aef-6ca1-9ead.ngrok-free.app"
+FYERS_REDIRECT_URL= "https://89ae-27-63-226-127.ngrok-free.app"
+
+
+DHAN_CLIENTID = "1101940945"
+DHAN_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzIzMTgxNzU0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTk0MDk0NSJ9.px-MnVntQ7nGaf4CM99bCZjZEDqHVUwtzqypF3wprKc4OFrBEzijQ0upetf6hfjwzKP3h8opLTarSsjXog-85Q"
+
+
+
+
 
 
 if not DEVELOPMENT_MODE:
