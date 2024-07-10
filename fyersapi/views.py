@@ -346,7 +346,7 @@ def close_all_positions(request):
             print("close_responseclose_responseclose_response", close_response)
 
             if close_response == False:
-                return JsonResponse({'message': 'NO Open Positions','code': '-99'})
+                return JsonResponse({'message': 'No Open Positions','code': '-99'})
             
             if close_response['status'] == 'success':
                 return JsonResponse({'message': 'SUccessfully Close Order','code': '-99'})
@@ -2485,16 +2485,6 @@ def get_broker_state(request):
     # Fetch the latest TradingConfigurations entry
     confData = TradingConfigurations.objects.order_by('-last_updated').first()
     if confData:
-        print("Entry - Toggling active_broker")
-        
-        # Toggle the active_broker value
-        if confData.active_broker == 'DHAN':
-            confData.active_broker = 'FYERS'
-        else:
-            confData.active_broker = 'DHAN'
-        
-        confData.save()
-        
         # Return the updated value as a JsonResponse
         return JsonResponse({'active_broker': confData.active_broker})
     else:
