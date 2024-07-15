@@ -136,7 +136,7 @@
                 <span class="hide-menu">REPORTING</span>
               </li>
               <li class="sidebar-item">
-                <a class="sidebar-link" href="{% url 'sod_reporting_view' %}" aria-expanded="false">
+                <a class="sidebar-link" href="{% url 'sod_config_process' %}" aria-expanded="false">
                   <span>
                     <i class="ti ti-mood-happy"></i>
                   </span>
@@ -174,39 +174,50 @@
           </ul>
           <div class="navbar-collapse justify-content-end px-0 " id="navbarNav">
             <ul class="navbar-nav flex-row ms-auto align-items-center justify-content-end" style="width: -webkit-fill-available;">
+            <style>
+              .custom-primary {
+                background-color: #007bff; /* Blue */
+                color: #ffffff; /* White text */
+              }
+            
+            </style>              
             {% comment %} ======================================================================================================= {% endcomment %}
             {% if options_data.data.optionsChain %}
-            <div class="container-fluid p-0 mt-1 ">
-                <div class="row  justify-content-center align-items-center">
-                   <div class="col-sm-4 my-1 " id="plContainer">
-                    <div class="alert alert-primary d-flex flex-column justify-content-center align-items-center p-0 m-0" style="height:55px;" role="alert">
-                      <p id="openPlData" class="mb-0 fs-5 fw-bolder">P\L DATA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp; No Positions</p>
-                      <input type="hidden" name="open-symbol" value="">
-                      <input type="hidden" name="open-qty" value="">
-                      <input type="hidden" name="open-traded-price" value="">
+            <div class="container mt-1">
+              <div class="row justify-content-center">
+                <div class="col-12 my-1">
+                  <div class="row">
+                    <div class="col-12 col-md-3 ">
+                      <div class="alert custom-primary text-center" role="alert">
+                        <p id="openPlData" class="mb-0 fs-5 fw-bolder">P/L DATA: No Positions</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-3 ">
+                      <div class="alert custom-primary text-center" role="alert">
+                        <p id="openOrderData" class="mb-0 fs-5 fw-bolder">POSITIONS: No Positions</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-3 ">
+                      <div class="alert custom-primary text-center" role="alert">
+                        <p id="expLossAmount" class="mb-0 fs-5 fw-bolder">EXP LOSS: No Positions</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-3 ">
+                      <div class="alert custom-primary text-center" role="alert">
+                        <p id="openAmountData" class="mb-0 fs-5 fw-bolder">DEPLOYED: No Positions</p>
+                      </div>
+                    </div>
                   </div>
-                  </div>  
-                  <div class="col-sm-4 my-1 " id="openContainer">
-                    <div class="alert alert-warning d-flex flex-column justify-content-center align-items-center p-0 m-0" style="height:55px;" role="alert">
-                      <p id="openOrderData" class="mb-0 fs-5 fw-bolder">POSITIONS &nbsp;&nbsp;:&nbsp;&nbsp; No Positions</p>
-                  </div>
-                  </div>
-                  <div class="col-sm-4 my-1 " id="openContainer">
-                    <div class="alert alert-danger d-flex flex-column justify-content-center align-items-center p-0 m-0" style="height:55px;" role="alert">
-                      <p id="expLossAmount" class="mb-0 fs-5 fw-bolder">EXP LOSS  &nbsp;&nbsp;&nbsp;: &nbsp; &nbsp; No Positions</p>
-                  </div>
-                  </div>
-                  <div class="col-sm-4 my-1 " id="openContainer">
-                    <div class="alert alert-primary d-flex flex-column justify-content-center align-items-center p-0 m-0" style="height:55px;" role="alert">
-                      <p id="openAmountData" class="mb-0 fs-5 fw-bolder">DEPLOYED &nbsp;&nbsp;&nbsp;: &nbsp; &nbsp; No Positions</p>
-                  </div>
-                  </div> 
+                </div>
               </div>
-            </div> 
-            {% endif%}
+            </div>
+            {% endif %}
+            
+            
             {% for item in fund_data.fund_limit %}
             {% if item.id == 10 %}
-                <a href="#" class="btn btn-success fw-semibold lh-sm my-4 mx-2">Available Balance:{{ item.equityAmount|floatformat:2 }}</a>
+                <a href="#" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">FYERS Balance:{{ item.equityAmount|floatformat:2 }}</a>
+                <a href="#" class="btn btn-success fw-semibold lh-sm my-4 mx-2">DHAN Balance:{{ dhan_fund|floatformat:2 }}</a>
                 <button id="updatebrokerdata" target="_blank" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">Loading...</button>
             {% endif %}
             {% endfor %}
@@ -255,7 +266,9 @@
                         class="me-2 rounded-circle bg-light-danger round-20 d-flex align-items-center justify-content-center">
                         <i class="ti ti-arrow-up-right text-success"></i>
                       </span>
-                      <a href="{% url "sod_reporting_view" %}" class="btn btn-success mx-2">SOD</a>
+                      {% comment %} <a href="{% url "sod_config_process" %}" class="btn btn-success mx-2">SOD Process</a> {% endcomment %}
+                      <button id="sodProcessBtn" class="btn btn-success mx-2">SOD Process</button>
+
                     </div>
                   </div>
                   <div class="col-4">
@@ -510,6 +523,40 @@
     
   </style>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    $(document).ready(function() {
+        $('#sodProcessBtn').click(function(e) {
+            e.preventDefault();
+    
+            $.ajax({
+                type: 'GET',
+                url: '{% url "sod_config_process" %}',
+                success: function(response) {
+                    // Handle success response
+                    swal({
+                        position: "top-end",
+                        icon: "success",
+                        title: response.message,
+                        showConfirmButton: false,
+                        timer: 4000
+                    });
+                },
+                error: function(xhr, status, error) {
+                    // Handle error response
+                    console.error('Failed to perform SOD Process. Error:', error);
+                    swal({
+                        position: "top-end",
+                        icon: "error",
+                        title: "Failed to perform SOD Process",
+                        showConfirmButton: false,
+                        timer: 4000
+                    });
+                }
+            });
+        });
+    });
+  </script>
+    
   <script>
     $(document).ready(function() {
       // Define a function to fetch data from the server

@@ -82,6 +82,91 @@
       }
 
 </style>
+<style>
+    /* Custom styles for btn-success (TradingView-like) */
+    .btn-success {
+        background-color: #0cbc1e;
+        border-color: #0e9950;
+        color: #fff;
+    }
+    
+    .btn-success:hover,
+    .btn-success:focus {
+        background-color: #0e9950;
+        border-color: #0c8348;
+        color: #fff;
+    }
+    
+    .btn-success:active {
+        background-color: #0c8348;
+        border-color: #0a6e40;
+        color: #fff;
+    }
+    
+    .btn-success:disabled {
+        background-color: #6fbf91;
+        border-color: #6fbf91;
+        color: #fff;
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    
+    /* Custom styles for btn-danger (TradingView-like) */
+    .btn-danger {
+        background-color: #fe2602;
+        border-color: #d32f2a;
+        color: #fff;
+    }
+    
+    .btn-danger:hover,
+    .btn-danger:focus {
+        background-color: #d32f2a;
+        border-color: #b72722;
+        color: #fff;
+    }
+    
+    .btn-danger:active {
+        background-color: #b72722;
+        border-color: #9a1f1b;
+        color: #fff;
+    }
+    
+    .btn-danger:disabled {
+        background-color: #f0897b;
+        border-color: #f0897b;
+        color: #fff;
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    
+    /* Custom styles for btn-primary (TradingView-like) */
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #4278d6;
+        color: #fff;
+    }
+    
+    .btn-primary:hover,
+    .btn-primary:focus {
+        background-color: #007bff;
+        border-color: #3769c5;
+        color: #fff;
+    }
+    
+    .btn-primary:active {
+        background-color: #007bff;
+        border-color: #2e5ca8;
+        color: #fff;
+    }
+    
+    .btn-primary:disabled {
+        background-color: #007bff;
+        border-color: #8ab7f7;
+        color: #fff;
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    </style>
 <div class="container-fluid" style="max-width: initial;">
   <div class="row">
     <div class="col-lg-12 col-sm-12 d-flex align-items-stretch">
@@ -121,11 +206,8 @@
                             <div class="container-fluid my-2 pt-4">
                                 <div class="row">
                                     <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
-                                        <button id="switch_scalp_mode" class="btn btn-info  spinner btn-lg btn-block w-100 h-100 fw-bold" style="border-radius: 10px;">Checking..</button>
+                                        <button id="switch_scalp_mode" class="btn btn-primary spinner btn-lg btn-block w-100 h-100 fw-bold disabled" style="border-radius: 10px;">Checking..</button>
                                     </div>
-                                    {% comment %} <div class="col-4 d-flex justify-content-center align-items-center" style="height:65px;">
-                                        <button  id="trailingwithlimit" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-up text-success"></i>{{forward_trailing_points}}</button>
-                                    </div>    {% endcomment %}
                                     <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
                                         <button id="trailingtodown" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-down text-warning"></i>{{reverse_trailing_points}}</button>
                                     </div>
@@ -219,72 +301,10 @@
     </div>
     </div>
 
-    {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
- {% comment %} {% for option in pe_options_with_serial %}
-    {% if option.option_type == "PE" and  forloop.counter0 == atm_index %}
-        <div class="alert alert-primary straddle" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
-            <div class="row">
-                <div class="col-4 d-flex justify-content-center align-items-center">
-                    <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 straddle-buy-button" style="border-radius: 6px">Buy</button>
-                </div>
-                    <div class="col-4 text-center">
-                        <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
-                        <input type="hidden" name="straddle_strike" value="{{ option.strike_price }}">
-                        <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
-                        <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
-                        <h5 class="card-title text-muted fw-bolder mb-0">
-                                <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STRADDLE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 1px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ straddle_capital }} - {{straddle_amount_limit}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-
-                            <br>
-                            <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;&nbsp;&nbsp;{{ option.strike_price }}</p>
-                        </h5>
-                        <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
-
-                    </div>
-                    <div class="col-4 d-flex justify-content-center align-items-center">
-                        <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
-                    </div>
-                </div>
-            </div>
-    {% endif %}
-{% endfor %}  {% endcomment %}
 
 
 
-<div class="alert alert-primary straddle" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
-    <div class="row">
-        <div class="col-4 d-flex justify-content-center align-items-center">
-            <button  id="trailingwithlimit" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-up text-success"></i>{{forward_trailing_points}}</button>
-        </div>
-            <div class="col-4 text-center">
-                {% comment %} <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
-                <input type="hidden" name="straddle_strike" value="{{ option.strike_price }}">
-                <input type="hidden" name="opt-symbol" value="{{ option.symbol }}">
-                <input type="hidden" name="opt-ltp" value="{{ option.ltp }}"> {% endcomment %}
-                <h5 class="card-title text-muted fw-bolder mb-0">
-                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OPEN &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        {% comment %} <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 1px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ straddle_capital }} - {{straddle_amount_limit}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> {% endcomment %}
-
-                    <br>
-                    <p id="openAmountData1" class="mb-0 mt-2 fs-5 fw-bolder">DEPLOYED</p>
-                    {% comment %} <p class="card-text fs-5 fw-bolder mt-1">&nbsp;&nbsp;&nbsp;&nbsp;{{ option.strike_price }}</p> {% endcomment %}
-                </h5>
-                {% comment %} <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p> {% endcomment %}
-
-            </div>
-            <div class="col-4 d-flex justify-content-center align-items-center">
-                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 partial-sell-button" style="border-radius: 6px">Partial Sell</button>
-            </div>
-        </div>
-</div>
-
-    {% comment %}  ==================================================== STRADDLE WIDGET ==================================================== {% endcomment %}
-
-
-
-
-<div class="container-fluid ">
+<div class="container-fluid">
     <div class="row ">
                     <!-- Web View -->
                     <div class="col-sm-6 col-xl-6">
@@ -334,7 +354,7 @@
                             <div class="row alig n-items-start">
                                 <div class="col-8">
                                 <h5 class="card-title mb-9 fw-semibold">Perfomance Status</h5>
-                                <div class="d-flex align-items-center pb-1">
+                                <div class="d-flex align-items-center pb-1">  
                                     <span
                                     class="me-2 rounded-circle bg-light-success round-20 d-flex align-items-center justify-content-center ">
                                     <i class="ti ti-arrow-up-right text-success"></i>
@@ -346,7 +366,7 @@
                                     class="me-2 rounded-circle bg-light-success round-20 d-flex align-items-center justify-content-center ">
                                     <i class="ti ti-arrow-up-right text-success"></i>
                                     </span>
-                                    <p class="fs-3 mb-0 fw-bolder fs-4">Actual P/L:&nbsp;&nbsp;&nbsp;&nbsp; {{ positions_data.overall.pl_realized|floatformat:2 }}</p>
+                                    <p class="fs-3 mb-0 fw-bolder fs-4">Actual P/L:&nbsp;&nbsp;&nbsp;&nbsp; {{ realized_pl|floatformat:2 }}</p>
                                 </div>
                                 </div>
                                 <div class="col-4">
@@ -455,38 +475,7 @@
 
         
 
-    {% comment %} <div class="container-fluid ">
-        <div class="row ">
-        <div class="col-sm-6 col-xl-12">
-            <div class="card">
-              <div class="card-body">
-                <div class="row alig n-items-start">
-                  <div class="col-8">
-                    <h5 class="card-title mb-9 fw-semibold">Orders Limit</h5>
-                    <h4 id="total_order_status" class="fw-semibold">{{order_limit}}</h4>
-                    <div class=" align-items-center">
-                      <div class="progress" style="height: 32px;">
-                        <div class="progress-bar {% if actual_profit < 50 %}bg-success{% elif progress_percentage <= 80 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ total_order_status }}" aria-valuemin="0" aria-valuemax="{{ order_limit }}">
-                            <span class="text-dark">{{ progress_percentage|floatformat:2 }}%</span>
-                        </div>
-                    </div>
-                    </div>
-                  </div>
-                  <div class="col-4">
-                    <div class="d-flex justify-content-end">
-                      <div
-                        class="text-white bg-secondary rounded-circle p-6 d-flex align-items-center justify-content-center">
-                        <i class="ti ti-currency-dollar fs-6"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div> 
-
-        </div>
-    </div> {% endcomment %}
+    </div>
 
 
 
@@ -765,6 +754,7 @@
                     showConfirmButton: false,
                     timer: 1500,
                 });
+                $this.prop('disabled', false).text('Sell');
 
                 // Cache frequently accessed elements
                 var parentDivElement = document.getElementById('openPlData').parentElement;
@@ -788,6 +778,7 @@
                 openAmountData1Element.innerHTML = 'DEPLOYED  &nbsp;';
                 expLossAmountElement.innerHTML = 'POSITIONS &nbsp;: &nbsp; &nbsp; No Positions';
                 openOrderDataElement.innerHTML = 'EXP LOSS  &nbsp;: &nbsp; &nbsp; No Positions';
+                
 
                 // Fetch session data and update UI
                 fetchSessionDataAndUpdateUI();
@@ -805,6 +796,7 @@
                     showConfirmButton: false,
                     timer: 1500,
                 });
+                $this.prop('disabled', false).text('Sell');
             }).always(function() {
                 // Reset button text after AJAX completes (success or error)
                 $this.prop('disabled', false).text('Sell');
@@ -1232,10 +1224,10 @@
         success: function(response) {
             // Set the initial state of the button based on the response
             if (response.scalping_mode) {
-                $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-info');
+                $('#switch_scalp_mode').addClass('btn-dark').removeClass('btn-primary');
                 document.getElementById('switch_scalp_mode').innerHTML="SCALP</br>"+response.capital;
             } else {
-                $('#switch_scalp_mode').addClass('btn-info').removeClass('btn-dark');
+                $('#switch_scalp_mode').addClass('btn-primary').removeClass('btn-dark');
                 document.getElementById('switch_scalp_mode').innerHTML="NORMAL</br>"+response.capital
             }
         },

@@ -435,73 +435,65 @@ class ProfileView(LoginRequiredMixin, View):
       return render(request, 'trading_tool/html/profile_view.html')
 
 
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from django.views.generic import FormView
-from .forms import SOD_DataForm
-from .models import SOD_EOD_Data  # Import your model
+from datetime import datetime, date
+from django.http import JsonResponse
+from .models import TradingConfigurations  # Replace 'myapp' with your actual Django app name
 
-class SOD_ReportingView(LoginRequiredMixin, FormView):
-    login_url = '/login'
-    template_name = 'trading_tool/html/sod_form.html'
-    form_class = SOD_DataForm
-    success_url = reverse_lazy('dashboard')
+def SOD_Config_Process(request):
+    try:
+        today = date.today()
+        
+        # Check if an entry for today already exists
+        existing_entry = TradingConfigurations.objects.filter(last_updated__date=today).exists()
+        
+        if existing_entry:
+            # Return a JsonResponse indicating that SOD (Start of Day) for today is already done
+            return JsonResponse({'message': f'SOD for {today} already done.'})
+        
+        # Fetch the latest TradingConfigurations object
+        latest_config = TradingConfigurations.objects.order_by('-last_updated').first()
 
-    def get_initial_data(self):
-        initial = super().get_initial()
-        # Retrieve slug data from URL parameters
-        # Load initial value for week_no
-        data_instance = get_data_instance(self.request)
-        fund_data = data_instance.funds()
-        #print("fund_datafund_data", fund_data)
-        current_date = datetime.date.today()
+        if latest_config:
+            # Create a new entry with over_trade_status set to False and last_updated to current timestamp
+            new_config = TradingConfigurations(
+                default_stoploss=latest_config.default_stoploss,
+                default_order_qty=latest_config.default_order_qty,
+                reward_ratio=latest_config.reward_ratio,
+                max_loss=latest_config.max_loss,
+                max_trade_count=latest_config.max_trade_count,
+                capital_limit_per_order=latest_config.capital_limit_per_order,
+                capital_usage_limit=latest_config.capital_usage_limit,
+                forward_trailing_points=latest_config.forward_trailing_points,
+                trailing_to_top_points=latest_config.trailing_to_top_points,
+                reverse_trailing_points=latest_config.reverse_trailing_points,
+                stoploss_limit_slippage=latest_config.stoploss_limit_slippage,
+                last_updated=datetime.now(),  # Set the current timestamp
+                averaging_limit=latest_config.averaging_limit,
+                order_quantity_mode=latest_config.order_quantity_mode,
+                scalping_amount_limit=latest_config.scalping_amount_limit,
+                scalping_mode=latest_config.scalping_mode,
+                scalping_stoploss=latest_config.scalping_stoploss,
+                scalping_ratio=latest_config.scalping_ratio,
+                straddle_amount_limit=latest_config.straddle_amount_limit,
+                straddle_capital_usage=latest_config.straddle_capital_usage,
+                over_trade_status=False,  # Set over_trade_status to False
+                averaging_qty=latest_config.averaging_qty,
+                active_broker=latest_config.active_broker,
+            )
 
-        # calculate the slippage 
-        initial_week_no = current_date.isocalendar()[1]
-        initial['week_no'] = initial_week_no
-        total_balance = 0
+            # Save the new configuration
+            new_config.save()
+            
+            # Return a JsonResponse indicating successful creation of SOD for today
+            return JsonResponse({'message': f'SOD for {today} done successfully.'})
 
-        for item in fund_data.get('fund_limit', []):
-            if item.get('title') == 'Total Balance':
-                total_balance = item.get('equityAmount')
-                break
-        #print("Total Balance:", total_balance)
-        initial['trading_date'] = current_date
-        initial['opening_balance'] = total_balance
+    except TradingConfigurations.DoesNotExist:
+        # Handle the case where no configurations exist
+        pass
 
-        previous_date = current_date - datetime.timedelta(days=1)
-        #print("previous_date", previous_date)
-        previous_date_data =SOD_EOD_Data.objects.filter(trading_date=previous_date).exists()
-        if previous_date_data:
-            previous_date_data = SOD_EOD_Data.objects.filter(trading_date=previous_date).first()
-            prev_day_slippage = float(total_balance) -   float(previous_date_data.closing_balance)
-            # calculate overall expense 
-            turnover = previous_date_data.opening_balance + previous_date_data.day_p_and_l + previous_date_data.withdrwal_amount
-            turnover = turnover-previous_date_data.withdrwal_amount
-            #print("turnoverturnoverturnover", turnover)
-            actual_expense = float(turnover) - total_balance
-            actual_benefit = float(previous_date_data.day_p_and_l) - float(actual_expense)
-            previous_date_data.actual_expense = actual_expense
-            previous_date_data.actual_benefit = actual_benefit
-            previous_date_data.save()
-            initial['prev_day_slippage'] = prev_day_slippage
-   
-        return initial
+    # Return a JsonResponse if there was an issue or no configurations were found
+    return JsonResponse({'message': 'Unable to perform SOD operation.'})
 
-    def get_initial(self):
-        return self.get_initial_data()
-
-    def form_valid(self, form):
-        # Check if a record with the same trading_date already exists
-        trading_date = form.cleaned_data.get('trading_date')
-        if SOD_EOD_Data.objects.filter(trading_date=trading_date).exists():
-            return JsonResponse({'error': 'A record for this trading date already exists.'}, status=400)
-        form.save()
-        return JsonResponse({'success': 'Form submitted successfully.'})
-
-    def form_invalid(self, form):
-        errors = form.errors.as_json()
-        return JsonResponse({'errors': errors}, status=400)
 
 
 from django.http import JsonResponse
@@ -1002,8 +994,13 @@ class OptionChainView(LoginRequiredMixin, View):
     def get(self, request, slug):
         context = {}
         template = 'trading_tool/html/optionchainview.html'
+        dhan_client_id = settings.DHAN_CLIENTID
+        dhan_access_token = settings.DHAN_ACCESS_TOKEN
+        dhan = dhanhq(dhan_client_id,dhan_access_token)
+        orderlist = dhan.get_order_list()
         data_instance = get_data_instance(request)
         conf_data = TradingConfigurations.objects.order_by('-last_updated').first()
+        active_broker = conf_data.active_broker
 
         forward_trailing_points = conf_data.forward_trailing_points
         reverse_trailing_points = conf_data.reverse_trailing_points
@@ -1017,9 +1014,20 @@ class OptionChainView(LoginRequiredMixin, View):
 
         try:
             expiry_response = data_instance.optionchain(data=data)
-            order_data = data_instance.orderbook()
-            total_order_status = sum(1 for order in order_data.get("orderBook", []) if order["status"] == 2)
-            positions_data = data_instance.positions()
+            if active_broker == "FYERS":
+                order_data = data_instance.orderbook()
+                total_order_status = sum(1 for order in order_data.get("orderBook", []) if order["status"] == 2)
+                positions_data = data_instance.positions()
+                realized_pl = float(positions_data['overall']['pl_realized'])
+                
+            elif  active_broker == "DHAN":
+                total_order_status = get_traded_order_count_dhan(orderlist) 
+                positions_data = dhan.get_positions()
+                print("positions_datapositions_datapositions_datapositions_data", positions_data)
+                if not positions_data['data'] == []:
+                    realized_pl = float(positions_data['data']['realizedProfit'])
+                else:
+                    realized_pl = 0
 
             tax = calculate_tax(cost)
             default_brokerage = settings.DEFAULT_BROKERAGE + tax
@@ -1058,7 +1066,7 @@ class OptionChainView(LoginRequiredMixin, View):
             option['serial_number'] = index
             option['lot_cost'] = int(option['ltp']) * get_default_lotsize(slug)
 
-        actual_profit = round(float(positions_data['overall']['pl_realized']) - float(exp_brokerage), 2)
+        actual_profit = round(realized_pl - float(exp_brokerage), 2)
         reward_ratio = conf_data.reward_ratio
         exp_loss = (cost * stoploss_percentage) / 100
         exp_profit_percentage = stoploss_percentage * reward_ratio
@@ -1066,6 +1074,15 @@ class OptionChainView(LoginRequiredMixin, View):
 
         day_max_loss = -conf_data.max_loss
         super_trader_threshold = exp_brokerage_limit * reward_ratio * 2
+        
+        dhan_client_id = settings.DHAN_CLIENTID
+        dhan_access_token = settings.DHAN_ACCESS_TOKEN
+        
+        try:
+            dhan = dhanhq(dhan_client_id, dhan_access_token)
+            dhan_fund = dhan.get_fund_limits()
+        except AttributeError as e:
+            dhan_fund = {'code': -1, 'message': f'Error occurred: {str(e)}', 's': 'error'}
 
         # max_serial_number = len(pe_options_sorted) * 2 - 1
         # atm_index = (max_serial_number // 2) + 1
@@ -1080,7 +1097,7 @@ class OptionChainView(LoginRequiredMixin, View):
             # 'max_serial_number': max_serial_number,
             'atm_index': atm_index,
             'expiry_response': first_expiry_date,
-            'positions_data': positions_data,
+            'realized_pl': realized_pl,
             'order_limit': order_limit,
             'exp_brokerage_limit': exp_brokerage_limit,
             'day_exp_profit': exp_brokerage_limit * reward_ratio,
@@ -1094,7 +1111,9 @@ class OptionChainView(LoginRequiredMixin, View):
             'actual_profit': actual_profit,
             'options_data': response,
             'straddle_capital' : conf_data.straddle_capital_usage*2,
-            'straddle_amount_limit' : conf_data.straddle_amount_limit
+            'straddle_amount_limit' : conf_data.straddle_amount_limit,
+            'active_broker': active_broker,
+            'dhan_fund' : dhan_fund['data']['availabelBalance']
         })
         return render(request, template, context)
 
@@ -1560,7 +1579,6 @@ async def instantBuyOrderWithSL(request):
         data_instance = await sync_to_async(get_fyers_data_instance)(request)
         dhan_client_id = settings.DHAN_CLIENTID
         dhan_access_token = settings.DHAN_ACCESS_TOKEN
-
         dhan = dhanhq(dhan_client_id,dhan_access_token)
 
         trade_config_data = await sync_to_async(
@@ -1572,20 +1590,25 @@ async def instantBuyOrderWithSL(request):
         
         # Early exit if trade configuration is not found
         if not trade_config_data:
-            return JsonResponse({'response': "Trading configuration not found"})
+            return JsonResponse({'message': "Trading configuration not found"})
 
         get_lot_count = await sync_to_async(get_default_lotsize)(ex_symbol1)
 
         # Check if max order count limit is reached
         if trade_config_data.over_trade_status:
-            return JsonResponse({'response': "Max Order count limit Reached"})
+            if trade_config_data.active_broker == 'DHAN':
+                kill_status_response = activate_kill_switch()
+                print("kill_status_responsekill_status_response", kill_status_response)
+                return JsonResponse({'message': "Max Trade Reached ,"+ kill_status_response })
+                
+            return JsonResponse({'message': "Max Order count limit Reached"})
 
         # Check if there are existing orders for different symbols
         tempDatainstance = await sync_to_async(OpenOrderTempData.objects.filter(~Q(symbol=der_symbol)).first)()
         tempDatainstance1 = await sync_to_async(OpenOrderTempData.objects.filter(Q(symbol=der_symbol)).first)()
 
         if tempDatainstance:
-            return JsonResponse({'response': "Unable to place another Symbol Order Now."})
+            return JsonResponse({'message': "Unable to place another Symbol Order Now."})
 
         # Calculate order quantity based on mode
         if trade_config_data.order_quantity_mode == "MANUAL":
@@ -1602,7 +1625,7 @@ async def instantBuyOrderWithSL(request):
             lotqty = Decimal(limit_amount) // per_lot_expense
             order_qty = int(lotqty * get_lot_count)
             if order_qty == 0:
-                return JsonResponse({'response': "Amount Usage Limit Reached"})
+                return JsonResponse({'message': "Amount Usage Limit Reached"})
         # Example conditional logic for different APIs
         if trade_config_data.active_broker == 'FYERS':
             # Place order
@@ -1657,7 +1680,7 @@ async def instantBuyOrderWithSL(request):
                     modify_data = {"id": order_with_status_6["id"], "type": 4, "qty": new_qty}
                     print('modify_datamodify_data', modify_data)
                     modify_response = await sync_to_async(data_instance.modify_order)(data=modify_data)
-                    return JsonResponse({'response': modify_response["message"]})
+                    return JsonResponse({'message': modify_response["message"]})
 
                 else:
                     buy_order_id = response["id"]
@@ -1707,16 +1730,16 @@ async def instantBuyOrderWithSL(request):
 
                     if stoploss_order_response["code"] == 1101:
                         message = "BUY/SL-L Placed Successfully"
-                        return JsonResponse({'response': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
+                        return JsonResponse({'message': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
                     elif stoploss_order_response["code"] == -99:
                         message = "SL-L not Placed, Insufficient Fund"
-                        return JsonResponse({'response': message})
+                        return JsonResponse({'message': message})
                     else:
-                        return JsonResponse({'response': stoploss_order_response["message"]})
+                        return JsonResponse({'message': stoploss_order_response["message"]})
             elif response["code"] == -99:
-                return JsonResponse({'response': response['message'], 'symbol': der_symbol, 'code': response["code"]})
+                return JsonResponse({'message': response['message'], 'symbol': der_symbol, 'code': response["code"]})
             else:
-                return JsonResponse({'response': response["message"]})
+                return JsonResponse({'message': response["message"]})
         elif trade_config_data.active_broker == 'DHAN':
 
             orderlist = dhan.get_order_list()
@@ -1745,18 +1768,28 @@ async def instantBuyOrderWithSL(request):
                 validity= dhan.DAY,
                 )
             
-            print('buy_responsebuy_responsebuy_response', buy_response['remarks']['message'])
+            order_id = buy_response['data']['orderId']
+            print("order_idorder_idorder_id", order_id)
+            buy_order_data = dhan.get_order_by_id(order_id)
+            print("buy_order_databuy_order_databuy_order_data", buy_order_data['data']['orderStatus'])
+
+            if buy_order_data['data']['orderStatus'] == 'REJECTED':
+                return JsonResponse({'message': buy_order_data['data']['omsErrorDescription'], 'symbol': der_symbol, 'code': '-99'})
 
             if buy_response['status'] == 'failure':
                 return JsonResponse({'message': buy_response['remarks']['message'], 'symbol': der_symbol, 'code': '-99'})
             
-            elif buy_response['status'] == 'success':
+            elif buy_order_data['data']['orderStatus'] == 'TRADED':
                 order_id = buy_response['data']['orderId'],
                 status = buy_response['data']['orderStatus'],
                 quantity = buy_response['data']['quantity'],
                 price = buy_response['data']['price'],
                 triggerPrice = buy_response['data']['triggerPrice'],
                 get_pending_order_data = get_pending_orders_dhan(orderlist)
+                traded_order_count = get_traded_order_count_dhan(orderlist)            
+                if traded_order_count >= trade_config_data.max_trade_count:
+                    await sync_to_async(TradingConfigurations.objects.order_by('-last_updated').update)(over_trade_status=True)
+
                 if get_pending_order_data:
                     sl_order_id = get_pending_order_data['data']['orderId']
                     sl_order_qty = get_pending_order_data['data']['quantity']
@@ -1772,6 +1805,7 @@ async def instantBuyOrderWithSL(request):
                     )
                     if sl_updated_response['status'] == 'failure':
                         return JsonResponse({'message': 'S-L updation failed !', 'symbol': der_symbol, 'code': '-99'})
+
                     elif sl_updated_response['status'] == 'success':
                         total_order_expense = updated_qty * ltp
                         ext_total_order_expense = Decimal(tempDatainstance1.order_total) + total_order_expense
@@ -1797,6 +1831,7 @@ async def instantBuyOrderWithSL(request):
 
                 if not get_pending_order_data and status == 'TRANSIT' :
                     buy_order_data = dhan.get_order_by_id(order_id)
+                    print("buy_order_databuy_order_databuy_order_data", buy_order_data)
                     traded_price = Decimal(buy_order_data['data']['price'])
                     stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
                     default_stoploss = Decimal(stoplossConf)
@@ -1820,10 +1855,20 @@ async def instantBuyOrderWithSL(request):
                         triggerPrice=stoploss_price,
                         validity= dhan.DAY,
                         )
+                    
+                    print('buy_responsebuy_responsebuy_response', sl_response)
+                    order_id = sl_response['data']['orderId']
+                    print("order_idorder_idorder_id", order_id)
+                    sl_order_data = dhan.get_order_by_id(order_id)
+                    print("sl_order_datasl_order_datasl_order_data", sl_order_data['data']['orderStatus'])
+
+                    if sl_order_data['data']['orderStatus'] == 'REJECTED':
+                        return JsonResponse({'message': sl_order_data['data']['omsErrorDescription'], 'symbol': der_symbol, 'code': '-99'})
+                        
                     if sl_response['status'] == 'failure':
                         return JsonResponse({'message': 'S-L order not placed !', 'symbol': der_symbol, 'code': '-99'})
                     
-                    elif sl_response['status'] == 'success':
+                    elif sl_order_data['data']['orderStatus'] == 'TRADED':
                         total_purchase_value = traded_price * order_qty
                         sl_price = stoploss_price
                         exp_loss = (traded_price - sl_price) * order_qty
@@ -1857,7 +1902,44 @@ def get_pending_orders_dhan(response):
     pending_orders = [order for order in response['data'] if order.get('orderStatus') == 'PENDING']
 
     return pending_orders
+
+def get_traded_order_count_dhan(response):
+    # Check if the response contains 'data'
+    if 'data' not in response:
+        return 0
+
+    # Filter orders with 'orderStatus' as 'TRADED'
+    traded_orders = [order for order in response['data'] if order.get('orderStatus') == 'TRADED']
+
+    # Return the count of traded orders
+    return len(traded_orders)
+
+
+import requests
+def activate_kill_switch():
+
+    url = "https://api.dhan.co/killSwitch"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "access-token": settings.DHAN_ACCESS_TOKEN
+    }
     
+    params = {
+        "killSwitchStatus": "ACTIVATE"
+    }
+
+    response = requests.post(url, headers=headers, params=params)
+    print("responseresponseresponse", response)
+
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data.get("killSwitchStatus")
+    else:
+        # Handle error response
+        return None
+
+
 
 
 import pandas as pd
@@ -1893,11 +1975,17 @@ def search_csv(formated_der_symbol, formatted_expiry_date):
 
     
 from datetime import datetime, time
-
+import re
 def convert_derivative_symbol(der_symbol, ex_symbol1):
+    
     parts = der_symbol.split(':')
     if len(parts) != 2:
         return "Invalid symbol format"
+    
+    if ex_symbol1 == "NIFTY50":
+        ex_symbol1="NIFTY"
+    if ex_symbol1 == "NIFTYBANK":
+        ex_symbol1="BANKNIFTY"
 
     details = parts[1]
 
@@ -1910,11 +1998,17 @@ def convert_derivative_symbol(der_symbol, ex_symbol1):
     # Remove option type, strike price, and ex_symbol1 from the details
     substrings_to_remove = [option_type, strike_price, ex_symbol1]
     modified_string = details
+    print("modified_stringmodified_string",substrings_to_remove )
     for substring in substrings_to_remove:
         modified_string = modified_string.replace(substring, '')
 
     # What remains is the expiry date
     expiry_date = modified_string
+    
+    expiry_date = re.sub(r'[a-zA-Z]', '', expiry_date)
+
+    
+    print("expiry_dateexpiry_dateexpiry_date", expiry_date)
 
     # Format expiry date (assuming yyMMdd or yymmdd format)
     if len(expiry_date) == 5:

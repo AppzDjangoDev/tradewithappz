@@ -17,7 +17,7 @@ urlpatterns = [
 
 
     path('trading-calender-view', views.TradingCalenderView.as_view(), name='trading_calender_view'),
-    path('sod-reporting-view', views.SOD_ReportingView.as_view(), name='sod_reporting_view'),
+    path('sod-config-process', views.SOD_Config_Process, name='sod_config_process'),
     path('eod-reporting-view', views.EOD_ReportingView.as_view(), name='eod_reporting_view'),
     path('fetch-date-data/', views.fetch_date_data, name='fetch_date_data'),
     path('daily-candle-overview/', views.daily_candle_overview, name='daily_candle_overview'),

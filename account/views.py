@@ -14,7 +14,7 @@ from django.db.models import Sum
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from fyersapi.models import TradingConfigurations, TradingData
-from fyersapi.views import brokerconnect, calculate_tax, get_accese_token_store_session, get_data_instance
+from fyersapi.views import brokerconnect, calculate_tax, get_accese_token_store_session, get_data_instance, get_traded_order_count_dhan
 from scheduler.scheduler import automate_sod_task, automate_eod_task 
 from .forms import CustomUserCreationForm
 from django.contrib.auth import authenticate, login
@@ -33,6 +33,8 @@ from urllib.parse import urlparse, parse_qs
 from django.contrib import messages
 import time
 from django.contrib.auth.mixins import LoginRequiredMixin
+from dhanhq import dhanhq
+
 
 
 def homePage(request):
@@ -62,6 +64,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         automate_sod_task()
         access_token = request.session.get('access_token')
         data_instance = get_data_instance(request)
+        dhan_client_id = settings.DHAN_CLIENTID
+        dhan_access_token = settings.DHAN_ACCESS_TOKEN
         try:
             self.positions_data = data_instance.positions()
         except AttributeError as e:
@@ -79,11 +83,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         except AttributeError as e:
             self.fund_data = {'code': -1, 'message': f'Error occurred: {str(e)}', 's': 'error'}
             #print("Error occurred while fetching fund data:", e)
+            
+        try:
+            dhan = dhanhq(dhan_client_id, dhan_access_token)
+            self.dhan_fund = dhan.get_fund_limits()
+            self.orderlist = dhan.get_order_list()
+            
+        except AttributeError as e:
+            self.fund_data = {'code': -1, 'message': f'Error occurred: {str(e)}', 's': 'error'}
+            
 
         self.total_order_status = 0
         self.pending_orders_status_6 = 0
         confData = TradingConfigurations.objects.order_by('-last_updated').first()
         cost = confData.capital_limit_per_order
+        self.active_broker = confData.active_broker
+        print("active_brokeractive_broker", self.active_broker)
         self.expected_brokerage = 0 
         tax = calculate_tax(cost)
         default_brokerage = settings.DEFAULT_BROKERAGE + tax
@@ -93,22 +108,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         #  trading_config.max_trade_count
         self.order_limit =  trading_config.max_trade_count
         self.progress_percentage= 0
-        if self.order_data and "orderBook" in self.order_data:
-            # Filter orders with status 6
-            filled_orders = [order for order in self.order_data["orderBook"] if order["status"] == 2]
-            # Sort pending orders by orderDateTime in descending order
-            filled_orders_sorted = sorted(filled_orders, key=lambda x: x["orderDateTime"], reverse=True)
-            # Iterate over the first 10 items in the sorted data
-            for order in filled_orders_sorted[:10]:
-                self.recent_order_data.append(order)
-            # Update pending order count
-            self.pending_orders_status_6 = sum(1 for order in self.order_data["orderBook"] if order["status"] == 6)
-            # Update total order count for status 2
-            self.total_order_status = sum(1 for order in self.order_data["orderBook"] if order["status"] == 2)
+        if self.active_broker == "FYERS":
+            if self.order_data and "orderBook" in self.order_data:
+                # Filter orders with status 6
+                filled_orders = [order for order in self.order_data["orderBook"] if order["status"] == 2]
+                # Sort pending orders by orderDateTime in descending order
+                filled_orders_sorted = sorted(filled_orders, key=lambda x: x["orderDateTime"], reverse=True)
+                # Iterate over the first 10 items in the sorted data
+                for order in filled_orders_sorted[:10]:
+                    self.recent_order_data.append(order)
+                # Update pending order count
+                self.pending_orders_status_6 = sum(1 for order in self.order_data["orderBook"] if order["status"] == 6)
+                # Update total order count for status 2
+                self.total_order_status = sum(1 for order in self.order_data["orderBook"] if order["status"] == 2)
+                
+        if self.active_broker == "DHAN ":
+                self.total_order_status = get_traded_order_count_dhan(self.orderlist)
             
 
-            self.progress_percentage = (self.total_order_status / self.order_limit) * 100
-            self.progress_percentage = round(self.progress_percentage, 1)
+        self.progress_percentage = (self.total_order_status / self.order_limit) * 100
+        self.progress_percentage = round(self.progress_percentage, 1)
         self.expected_brokerage = self.total_order_status * default_brokerage
         return super().dispatch(request, *args, **kwargs)
 
@@ -123,6 +142,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['expected_brokerage'] = self.expected_brokerage
         context['recent_order_data'] = self.recent_order_data
         context['positions_data'] = self.positions_data
+        context['dhan_fund'] = self.dhan_fund['data']['availabelBalance']
+        context['active_broker'] = self.active_broker
+
         return context
 
 class UserloginView(View):
