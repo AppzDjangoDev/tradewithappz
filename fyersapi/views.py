@@ -262,9 +262,9 @@ def partial_exit_positions(request):
 
 from asgiref.sync import sync_to_async
 def close_all_positions(request):
-    confData = TradingConfigurations.objects.order_by('-last_updated').only('active_broker').first()
-    active_broker = confData.active_broker
-    print('active_brokeractive_brokeractive_broker', confData.active_broker)
+    # confData = TradingConfigurations.objects.order_by('-last_updated').only('active_broker').first()
+    active_broker = "FYERS"
+    # print('active_brokeractive_brokeractive_broker', confData.active_broker)
 
     if active_broker == "FYERS":
         client_id = settings.FYERS_APP_ID
@@ -276,14 +276,19 @@ def close_all_positions(request):
         fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
         order_data = fyers.orderbook()
 
-        # Collect order IDs with status 6 using list comprehension
-        orders_with_status_6 = [{"id": order.get("id")} for order in order_data["orderBook"] if order["status"] == 6]
+        order_book = order_data["orderBook"]
+
+        # Create a set of order IDs with status 6
+        orders_with_status_6 = {order["id"] for order in order_book if order["status"] == 6}
+
+        # Convert the set to a list of dictionaries if needed
+        orders_with_status_6_list = [{"id": order_id} for order_id in orders_with_status_6]
 
         if orders_with_status_6:
             order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
             messages.success(request, order_cancel_response)
         else:
-            messages.success(request, "No pending orders to cancel.")
+            messages.info(request, "No pending orders to cancel.")
 
         # Exit positions
         data = {
@@ -295,8 +300,9 @@ def close_all_positions(request):
 
         if 'message' in response:
             message = response['message']
-            messages.success(request, message)
-            OpenOrderTempData.objects.all().delete()
+            print("messagemessage", response)
+            if not response['code'] == -352:
+                OpenOrderTempData.objects.all().delete()
             return JsonResponse({'message': message, 'code': response['code']})
         else:
             message = "Error: Response format is unexpected"
