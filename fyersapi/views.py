@@ -1086,6 +1086,14 @@ class OptionChainView(LoginRequiredMixin, View):
 
         # max_serial_number = len(pe_options_sorted) * 2 - 1
         # atm_index = (max_serial_number // 2) + 1
+        
+        remaining_orders = order_limit - total_order_status
+        progress_percentage = (remaining_orders / order_limit) * 100
+        progress_percentage = round(progress_percentage, 1)
+        
+        
+        
+        
 
         atm_index = len(pe_options_sorted) // 2  # Calculate the ATM index
         context.update({
@@ -1113,7 +1121,8 @@ class OptionChainView(LoginRequiredMixin, View):
             'straddle_capital' : conf_data.straddle_capital_usage*2,
             'straddle_amount_limit' : conf_data.straddle_amount_limit,
             'active_broker': active_broker,
-            'dhan_fund' : dhan_fund['data']['availabelBalance']
+            'dhan_fund' : dhan_fund['data']['availabelBalance'],
+            'progress_percentage' : progress_percentage
         })
         return render(request, template, context)
 
@@ -1642,6 +1651,7 @@ async def instantBuyOrderWithSL(request):
             response = await sync_to_async(data_instance.place_order)(data=order_data)
             # print('777777777777777777777777777777777777')
             # response['code'] = 1101
+            
 
             if response.get("code") == 1101:
                 allOrderData = await sync_to_async(data_instance.orderbook)()
@@ -1687,6 +1697,7 @@ async def instantBuyOrderWithSL(request):
                     buy_order_data = {"id": buy_order_id}
                     order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
                     traded_price = Decimal(order_details["tradedPrice"])
+                    # traded_price = 200
 
                     stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
                     default_stoploss = Decimal(stoplossConf)
@@ -1716,19 +1727,18 @@ async def instantBuyOrderWithSL(request):
                     total_purchase_value = traded_price * order_qty
                     sl_price = stoploss_price
                     exp_loss = (traded_price - sl_price) * order_qty
-
-                    await sync_to_async(OpenOrderTempData.objects.create)(
-                        symbol=der_symbol,
-                        order_total=total_purchase_value,
-                        premium_price=traded_price,
-                        average_price=traded_price,
-                        quantity=order_qty,
-                        sl_price=sl_price,
-                        exp_loss=exp_loss,
-                        is_averaged=0
-                    )
-
+                    # stoploss_order_response["code"] = 1101
                     if stoploss_order_response["code"] == 1101:
+                        await sync_to_async(OpenOrderTempData.objects.create)(
+                            symbol=der_symbol,
+                            order_total=total_purchase_value,
+                            premium_price=traded_price,
+                            average_price=traded_price,
+                            quantity=order_qty,
+                            sl_price=sl_price,
+                            exp_loss=exp_loss,
+                            is_averaged=0
+                        )
                         message = "BUY/SL-L Placed Successfully"
                         return JsonResponse({'message': message, 'symbol': der_symbol, 'qty': order_qty, 'traded_price': traded_price})
                     elif stoploss_order_response["code"] == -99:
@@ -2478,7 +2488,16 @@ def get_open_temp_data(request):
             exp_loss = openTempData.exp_loss
             exp_stoploss_amount = request.session.get('exp_stoploss_amount')
             sl_price = openTempData.sl_price
-    
+            
+            print("openTempDataopenTempData", openTempData)
+            print("open_symbolopen_symbolopen_symbol", open_symbol)
+            print("open_traded_priceopen_traded_price", open_traded_price)
+            print("total_order_amounttotal_order_amount", total_order_amount)
+            print("exp_stoploss_amountexp_stoploss_amount", exp_stoploss_amount)
+            print("sl_pricesl_price", sl_price)
+            print("exp_lossexp_loss", exp_loss)
+            
+            
             return JsonResponse({
                 'open_symbol': open_symbol,
                 'open_qty': open_qty,
@@ -2488,8 +2507,6 @@ def get_open_temp_data(request):
                 'exp_loss': exp_loss,
                 'sl_price': sl_price,
                 'scalping_mode': scalping_mode
-
-                
             })
         else:
             return JsonResponse({'error': 'No Open Position for now'}, status=404)

@@ -126,7 +126,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 self.total_order_status = get_traded_order_count_dhan(self.orderlist)
             
 
-        self.progress_percentage = (self.total_order_status / self.order_limit) * 100
+        self.remaining_orders = self.order_limit - self.total_order_status
+        self.progress_percentage = (self.remaining_orders / self.order_limit) * 100
         self.progress_percentage = round(self.progress_percentage, 1)
         self.expected_brokerage = self.total_order_status * default_brokerage
         return super().dispatch(request, *args, **kwargs)
