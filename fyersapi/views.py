@@ -300,9 +300,7 @@ def close_all_positions(request):
 
         if 'message' in response:
             message = response['message']
-            print("messagemessage", response)
-            if not response['code'] == -352:
-                OpenOrderTempData.objects.all().delete()
+            OpenOrderTempData.objects.all().delete()
             return JsonResponse({'message': message, 'code': response['code']})
         else:
             message = "Error: Response format is unexpected"
@@ -1656,7 +1654,7 @@ async def instantBuyOrderWithSL(request):
 
             response = await sync_to_async(data_instance.place_order)(data=order_data)
             # print('777777777777777777777777777777777777')
-            # response['code'] = 1101
+            response['code'] = 1101
             
 
             if response.get("code") == 1101:
@@ -1703,7 +1701,7 @@ async def instantBuyOrderWithSL(request):
                     buy_order_data = {"id": buy_order_id}
                     order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
                     traded_price = Decimal(order_details["tradedPrice"])
-                    # traded_price = 200
+                    traded_price = 200
 
                     stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
                     default_stoploss = Decimal(stoplossConf)
@@ -1733,7 +1731,7 @@ async def instantBuyOrderWithSL(request):
                     total_purchase_value = traded_price * order_qty
                     sl_price = stoploss_price
                     exp_loss = (traded_price - sl_price) * order_qty
-                    # stoploss_order_response["code"] = 1101
+                    stoploss_order_response["code"] = 1101
                     if stoploss_order_response["code"] == 1101:
                         await sync_to_async(OpenOrderTempData.objects.create)(
                             symbol=der_symbol,

@@ -1046,11 +1046,11 @@
     }
 
     // Set interval to refresh the page every 3 minutes (180,000 milliseconds) only if it's between working hours
-    setInterval(function() {
-        if (isBetweenWorkingHours()) {
-            refreshPage();
-        }
-    }, 180000);
+    //setInterval(function() {
+    //   if (isBetweenWorkingHours()) {
+    //      refreshPage();
+    //  }
+    //}, 180000); 
 </script>
 
 <script>
@@ -1063,11 +1063,6 @@
             success: function(response) {
                 // Check if session data exists
                 if (response.hasOwnProperty('open_symbol') && response.hasOwnProperty('open_qty') && response.hasOwnProperty('open_traded_price')) {
-
-                    console.log("responseresponseresponse", response)
-                    // Show the container
-                    //document.getElementById('plContainer').style.display = 'block';
-    
                     // Get the data from the response
                     var open_symbol = response.open_symbol;
                     let modifiedString = open_symbol.replace("NSE:", "");
@@ -1082,22 +1077,18 @@
                         let result = symbol.replace(pattern, '$1  $2');
                         return result;
                     }
-
                     let modifiedString1 = removeExpiryDate(modifiedString);
+                    console.log("modifiedStringmodifiedStringmodifiedString", modifiedString)
                     console.log("open_qtyopen_qty", open_qty,"open_traded_price", open_traded_price , "open_symbol", open_symbol,'total_order_amount', total_order_amount)
                     // Update the HTML elements with the retrieved data
-                    // Assign values to the hidden input fields
                     document.querySelector('input[name="open-symbol"]').value = open_symbol;
                     document.querySelector('input[name="open-qty"]').value = open_qty;
                     document.querySelector('input[name="open-traded-price"]').value = open_traded_price;
                     document.getElementById('expLossAmount').innerHTML = 'M/L:&nbsp;&nbsp;&nbsp;&nbsp; ' + exp_loss + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +  'SL:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + sl_price;
                     document.getElementById('openOrderData').innerHTML = 'QTY:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ' + open_qty + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +  'LTP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + open_traded_price;
-
                     document.getElementById('openAmountData').innerHTML =  modifiedString1 + '&nbsp;&nbsp;&nbsp;('+ total_order_amount + '&nbsp;&nbsp;₹)' ;
-
                     document.getElementById('expLossAmount').innerHTML = 'SL  OVERVIEW :&nbsp;' + sl_price + '<br>&nbsp;&nbsp;&nbsp;&nbsp;(' + exp_loss + '&nbsp;&nbsp;₹)';
                     document.getElementById('openOrderData').innerHTML = 'BUY OVERVIEW :&nbsp;' + open_traded_price + '<br>&nbsp;&nbsp;&nbsp;&nbsp;(' + open_qty + ' qty)';
-                    
                 }
             },
             error: function(xhr, status, error) {
