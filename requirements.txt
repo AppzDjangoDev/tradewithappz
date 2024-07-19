@@ -11,8 +11,8 @@ aws-lambda-powertools==1.20.0
 aws-xray-sdk==2.8.0
 backports.zoneinfo==0.2.1
 billiard==3.6.4.0
-boto3==1.18.69
-botocore==1.21.69
+boto3==1.17.112
+botocore==1.20.112
 celery==5.1.2
 certifi==2021.5.30
 cffi==1.14.6
