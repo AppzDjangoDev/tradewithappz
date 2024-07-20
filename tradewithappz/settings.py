@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "channels",
     'django_cron',
     'scheduler',
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -223,7 +224,12 @@ STATUS_DESCRIPTIONS = {
 
 FYERS_APP_ID="H9O406XBXW-100"
 FYERS_SECRET_ID="XOVF82L85V"
-FYERS_REDIRECT_URL= "https://72a0-106-216-129-59.ngrok-free.app"
+FYERS_REDIRECT_URL= "https://2433-2401-4900-6663-721c-5c4e-6cc0-cbc9-5149.ngrok-free.app"
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://2433-2401-4900-6663-721c-5c4e-6cc0-cbc9-5149.ngrok-free.app',
+]
+
 
 
 DHAN_CLIENTID = "1101940945"

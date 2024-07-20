@@ -261,6 +261,11 @@ def partial_exit_positions(request):
 
 
 from asgiref.sync import sync_to_async
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+
+
+@csrf_exempt
 def close_all_positions(request):
     # confData = TradingConfigurations.objects.order_by('-last_updated').only('active_broker').first()
     active_broker = "FYERS"
@@ -268,8 +273,13 @@ def close_all_positions(request):
 
     if active_broker == "FYERS":
         client_id = settings.FYERS_APP_ID
-        access_token = request.session.get('access_token')
-        
+        # try :
+        #     access_token = request.session.get('access_token')
+        # except :
+        config = get_object_or_404(CommonConfig, param="access_token")
+        # Access the 'value' field
+        access_token = config.value
+    
         if not access_token:
             return redirect('dashboard')
         
@@ -277,6 +287,7 @@ def close_all_positions(request):
         order_data = fyers.orderbook()
 
         order_book = order_data["orderBook"]
+        print("order_bookorder_bookorder_book")
 
         # Create a set of order IDs with status 6
         orders_with_status_6 = {order["id"] for order in order_book if order["status"] == 6}
@@ -297,6 +308,7 @@ def close_all_positions(request):
             "productType": ["INTRADAY"]
         }
         response = fyers.exit_positions(data=data)
+        print("responseresponseresponse", response)
 
         if 'message' in response:
             message = response['message']
@@ -356,6 +368,62 @@ def close_all_positions(request):
                 return JsonResponse({'message': 'SUccessfully Close Order','code': '-99'})
 
             return JsonResponse({'message': 'Cannot Close Positions',  'code': '-99'})
+    else:
+        return JsonResponse({'message': 'Invalid broker', 'code': '-1'})
+    
+    
+from django.shortcuts import redirect
+from django.http import JsonResponse
+from django.contrib import messages
+from django.conf import settings
+
+
+@csrf_exempt
+def api_close_all_positions(request):
+    # Assuming active_broker is fetched from the configuration
+    active_broker = "FYERS"
+
+    if active_broker == "FYERS":
+        client_id = settings.FYERS_APP_ID
+        access_token = request.session.get('access_token')
+        
+        if not access_token:
+            return redirect('dashboard')
+        
+        fyers = fyersModel.FyersModel(client_id=client_id, token=access_token, log_path="")
+        order_data = fyers.orderbook()
+
+        order_book = order_data["orderBook"]
+
+        # Create a set of order IDs with status 6
+        orders_with_status_6 = {order["id"] for order in order_book if order["status"] == 6}
+
+        # Convert the set to a list of dictionaries if needed
+        orders_with_status_6_list = [{"id": order_id} for order_id in orders_with_status_6]
+
+        if orders_with_status_6:
+            order_cancel_response = fyers.cancel_basket_orders(data=orders_with_status_6)
+            messages.success(request, order_cancel_response)
+        else:
+            messages.info(request, "No pending orders to cancel.")
+
+        # Exit positions
+        data = {
+            "segment": [11],
+            "side": [1],
+            "productType": ["INTRADAY"]
+        }
+        response = fyers.exit_positions(data=data)
+
+        if 'message' in response:
+            message = response['message']
+            OpenOrderTempData.objects.all().delete()
+            return JsonResponse({'message': message, 'code': response['code']})
+        else:
+            message = "Error: Response format is unexpected"
+            messages.error(request, message)
+            return JsonResponse({'message': message, 'code': response.get('code', 'unknown')})
+        
     else:
         return JsonResponse({'message': 'Invalid broker', 'code': '-1'})
 
@@ -1577,10 +1645,10 @@ from decimal import Decimal
 from django.http import JsonResponse
 from django.db.models import Q
 from .models import TradingConfigurations, OpenOrderTempData
+from rest_framework.decorators import api_view
 
 async def instantBuyOrderWithSL(request):
     if request.method == 'POST':
-        
         # Retrieve data from POST request
         der_symbol = request.POST.get('der_symbol')
         ex_symbol1 = request.POST.get('ex_symbol1')
@@ -1952,7 +2020,6 @@ def activate_kill_switch():
     else:
         # Handle error response
         return None
-
 
 
 

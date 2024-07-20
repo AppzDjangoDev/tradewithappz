@@ -176,28 +176,32 @@
             <ul class="navbar-nav flex-row ms-auto align-items-center justify-content-end" style="width: -webkit-fill-available;">
               <style>
                 .custom-primary {
-                  background-color: #007bff; /* Blue */
-                  color: #ffffff; /* White text */
+                  background-color: #2d88e9; /* Blue */
+                  color: #ffffff; /* white  text */
                 }
               
                 .custom-danger {
-                  background-color: #dc3545; /* Red */
-                  color: #ffffff; /* White text */
+                  background-color: #dd2000; /* Red */
+                  color: #ffffff; /* white  text */
                 }
               
                 .custom-success {
-                  background-color: #28a745; /* Green */
-                  color: #ffffff; /* White text */
+                  background-color: #0eb51f; /* Green */
+                  color: #ffffff; /* white  text */
                 }
               
                 .custom-warning {
-                  background-color: #ffc107; /* Yellow */
+                  background-color: #ffd861; /* Yellow */
                   color: #000000; /* Black text */
                 }
               
                 .custom-info {
                   background-color: #17a2b8; /* Teal */
-                  color: #ffffff; /* White text */
+                  color: #ffffff; /* white  text */
+                }
+                .custom-light {
+                  background-color: #afbfb1; /* Teal */
+                  color: #000000; /* white  text */
                 }
               </style>
                         
@@ -209,7 +213,7 @@
                   <div class="row">
                     <div class="col-12 col-md-3 ">
                       <div class="alert custom-primary text-center" role="alert">
-                        <p id="openPlData" class="mb-0 fs-5 fw-bolder">P/L DATA: No Positions</p>
+                        <p id="openPlData" class="mb-0 fs-5 fw-bolder">P/L DATA</p>
                         <input type="hidden" name="open-symbol" value="">
                         <input type="hidden" name="open-qty" value="">
                         <input type="hidden" name="open-traded-price" value="">
@@ -217,17 +221,17 @@
                     </div>
                     <div class="col-12 col-md-3 ">
                       <div class="alert custom-primary text-center" role="alert">
-                        <p id="openOrderData" class="mb-0 fs-5 fw-bolder">POSITIONS: No Positions</p>
+                        <p id="openOrderData" class="mb-0 fs-5 fw-bolder">POSITIONS</p>
                       </div>
                     </div>
                     <div class="col-12 col-md-3 ">
                       <div class="alert custom-primary text-center" role="alert">
-                        <p id="expLossAmount" class="mb-0 fs-5 fw-bolder">EXP LOSS: No Positions</p>
+                        <p id="expLossAmount" class="mb-0 fs-5 fw-bolder">STOPLOSS</p>
                       </div>
                     </div>
                     <div class="col-12 col-md-3 ">
                       <div class="alert custom-primary text-center" role="alert">
-                        <p id="openAmountData" class="mb-0 fs-5 fw-bolder">DEPLOYED: No Positions</p>
+                        <p id="openAmountData" class="mb-0 fs-5 fw-bolder">DEPLOYED</p>
                       </div>
                     </div>
                   </div>
@@ -370,12 +374,12 @@
               <div class="card-body">
                 <div class="row alig n-items-start">
                   <div class="col-8">
-                    <h5 class="card-title mb-9 fw-semibold">Orders Limit  {{progress_percentage}}</h5>
+                    <h5 class="card-title mb-9 fw-semibold">Orders Limit</h5>
                     <h4 id="total_order_status" class="fw-semibold">{{order_limit}}</h4>
                     <div class=" align-items-center">
                       <div class="progress" style="height: 32px;">
                        
-                        <div class="progress-bar {% if progress_percentage < 50 %}bg-success{% elif progress_percentage <= 80 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ total_order_status }}" aria-valuemin="0" aria-valuemax="{{ order_limit }}">
+                        <div class="progress-bar {% if progress_percentage < 50 %}bg-danger{% elif progress_percentage <= 80 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ total_order_status }}" aria-valuemin="0" aria-valuemax="{{ order_limit }}">
                             <span class="text-dark">{{ progress_percentage|floatformat:2 }}%</span>
                         </div>
                     </div>

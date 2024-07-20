@@ -70,15 +70,15 @@ class FyersPositionDataConsumer(WebsocketConsumer):
         self.fyers.keep_running()
 
     def onPosition(self, message):
-        #print("Position Response:", message)
+        print("Position Response:", message)
         self.send(text_data=f"Position Response: {message}")
 
     def onerror(self, message):
-        #print("Error:", message)
+        print("Error:", message)
         self.send(text_data=f"Error: {message}")
 
     def onclose(self, message):
-        #print("Connection closed:", message)
+        print("Connection closed:", message)
         self.send(text_data=f"Connection closed: {message}")
 
     @staticmethod
@@ -195,59 +195,56 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         return hash_object.hexdigest()
     
     def getOptionStrikes(self):
-        response=None
         # Initialize the FyersModel instance with your client_id, access_token, and enable async mode
         self.fyers = fyersModel.FyersModel(client_id=self.app_id, is_async=False, token=self.access_token, log_path="")
-        #print("self.symbolsself.symbols", type(self.symbols))
-        self.ce_symbols=[]
-        self.pe_symbols=[]
-      
+        
         data = {
             "symbol": self.symbols[0],
             "strikecount": 1,
         }
+        
         try:
+            # Fetch expiry data
             self.expiry_response = self.fyers.optionchain(data=data)
             first_expiry_ts = self.expiry_response['data']['expiryData'][0]['expiry']
-            # first_expiry_date = expiry_response['data']['expiryData'][0]['date']
-            # return render(request, template, context)
+            
             if first_expiry_ts:
+                # Fetch option chain data for the nearest expiry
                 options_data = {
-                    "symbol":self.symbols[0],
+                    "symbol": self.symbols[0],
                     "strikecount": 4,
                     "timestamp": first_expiry_ts
                 }
-
+                
                 response = self.fyers.optionchain(data=options_data)
-                # Filter optionsChain data for option type 'PE'
-                pe_options = [option for option in response['data']['optionsChain'] if option['option_type'] == 'PE']
-                # Sort the filtered data by strike_price in ascending order
-                pe_options_sorted = sorted(pe_options, key=lambda x: x['strike_price'], reverse=True)
-                #print("**************************************")
-                # #print(pe_options_sorted)
+                options_chain = response['data']['optionsChain']
+                
+                # Filter and sort options
+                pe_options_sorted = sorted(
+                    [option for option in options_chain if option['option_type'] == 'PE'],
+                    key=lambda x: x['strike_price'],
+                    reverse=True
+                )
+                ce_options_sorted = sorted(
+                    [option for option in options_chain if option['option_type'] == 'CE'],
+                    key=lambda x: x['strike_price']
+                )
+                
+                # Extract symbols
                 self.pe_symbols = [option['symbol'] for option in pe_options_sorted]
-                #print("**************************************")
-
-
-
-                # Filter optionsChain data for option type 'CE'
-                ce_options = [option for option in response['data']['optionsChain'] if option['option_type'] == 'CE']
-                # Sort the filtered data by strike_price in ascending order
-                ce_options_sorted = sorted(ce_options, key=lambda x: x['strike_price'])
-                #print("**************************************")
-                # #print(ce_options_sorted)
                 self.ce_symbols = [option['symbol'] for option in ce_options_sorted]
-                symbol_list =  self.ce_symbols + self.pe_symbols
-                #print("**************************************")
+                
+                # Combine symbols
+                symbol_list = self.ce_symbols + self.pe_symbols
                 return symbol_list
-            
 
-        except (KeyError, AttributeError, IndexError) as e:
+        except (KeyError, AttributeError, IndexError, Exception) as e:
             # Handle the error gracefully
             error_message = f'Error occurred: {str(e)}'
-            #print("Error occurred while fetching expiry data:", error_message)
-          
-        return response
+            print("Error occurred while fetching option data:", error_message)
+            
+        return []
+
 
     def receive(self, text_data):
         # Parse the incoming message

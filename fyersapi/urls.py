@@ -29,6 +29,11 @@ urlpatterns = [
 
 
     path('close_all_positions', views.close_all_positions, name='close_all_positions'),
+    # path('api/close_all_positions/', views.api_close_all_positions, name='api_close_all_positions'),
+    path('api/close_all_positions/', views.close_all_positions, name='api_close_all_positions'),
+    
+    
+    
     path('update-data-instance/', views.update_data_instance, name='update_data_instance'),
     path('partial_exit_positions', views.partial_exit_positions, name='partial_exit_positions'),
  
@@ -47,6 +52,8 @@ urlpatterns = [
     path('options-chain-view/<str:slug>/', views.OptionChainView.as_view(), name='options_chain_view'),
     path('configure-trading/', ConfigureTradingView.as_view(), name='configure_trading'),
     path('instant-buy-order/', views.instantBuyOrderWithSL, name='instant_buy_order'),
+   
+
     path('straddle-buy-order/', views.StraddleBuyOrderPlacement, name='straddle_buy_order'),
 
 
