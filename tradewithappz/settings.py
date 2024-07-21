@@ -221,14 +221,17 @@ STATUS_DESCRIPTIONS = {
     6: 'Pending',
 }
 
+import os
+
+# Get the ngrok URL from environment variables
+NGROK_URL="https://edb8-106-205-160-170.ngrok-free.app"
+
+
 
 FYERS_APP_ID="H9O406XBXW-100"
 FYERS_SECRET_ID="XOVF82L85V"
-FYERS_REDIRECT_URL= "https://2433-2401-4900-6663-721c-5c4e-6cc0-cbc9-5149.ngrok-free.app"
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://2433-2401-4900-6663-721c-5c4e-6cc0-cbc9-5149.ngrok-free.app',
-]
+FYERS_REDIRECT_URL = NGROK_URL
+CSRF_TRUSTED_ORIGINS = [NGROK_URL]
 
 
 
