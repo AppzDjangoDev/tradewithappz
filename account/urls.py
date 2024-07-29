@@ -14,10 +14,12 @@ urlpatterns = [
     # path('dashboard', views.dashboard, name='dashboard'),
     path('dashboard', views.DashboardView.as_view(), name='dashboard'),
     # path('explore_more', views.ExpoloreMore, name='explore_more'),
-    
-
-    
     # path('logout', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    
+    
+    
+    path('api/login/', views.login_view, name='login'),
+    
 
    
 

@@ -199,6 +199,36 @@ class UserloginView(View):
             else:
                 #print("user not created")
                 return render(request, template, context)
+            
+
+from django.contrib.auth import authenticate
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def login_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+            
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                # Authentication successful
+                return JsonResponse({'message': 'Login successful'}, status=200)
+            else:
+                # Authentication failed
+                return JsonResponse({'error': 'Invalid username or password'}, status=401)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    return JsonResponse({'error': 'Invalid HTTP method'}, status=405)
+
+
 
 
 class UserRegistrationView(CreateView):

@@ -24,7 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
+NGROK_URL = os.environ.get('NGROK_URL', default='testdefault')
+
+
+# NGROK_URL="https://f853-49-47-198-27.ngrok-free.app"
+print("NGROK_URLNGROK_URLNGROK_URLNGROK_URL", NGROK_URL)
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', default='True')
@@ -224,7 +229,6 @@ STATUS_DESCRIPTIONS = {
 import os
 
 # Get the ngrok URL from environment variables
-NGROK_URL="https://edb8-106-205-160-170.ngrok-free.app"
 
 
 
