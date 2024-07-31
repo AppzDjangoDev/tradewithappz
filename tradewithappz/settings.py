@@ -26,11 +26,11 @@ SECRET_KEY="test"
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-NGROK_URL = os.environ.get('NGROK_URL', default='testdefault')
-
-
-# NGROK_URL="https://f853-49-47-198-27.ngrok-free.app"
-print("NGROK_URLNGROK_URLNGROK_URLNGROK_URL", NGROK_URL)
+NGROK_URL = os.environ.get('NGROK_URL', default=None)
+FYERS_APP_ID = os.environ.get('FYERS_APP_ID', default=None)
+FYERS_SECRET_ID = os.environ.get('FYERS_SECRET_ID', default=None)
+DHAN_CLIENTID = os.environ.get('DHAN_CLIENTID', default=None)
+DHAN_ACCESS_TOKEN = os.environ.get('DHAN_ACCESS_TOKEN', default=None)
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -228,29 +228,12 @@ STATUS_DESCRIPTIONS = {
     6: 'Pending',
 }
 
-import os
 
-# Get the ngrok URL from environment variables
-
-
-
-FYERS_APP_ID="H9O406XBXW-100"
-FYERS_SECRET_ID="XOVF82L85V"
 FYERS_REDIRECT_URL = NGROK_URL
 CSRF_TRUSTED_ORIGINS = [NGROK_URL]
 
 
-
-DHAN_CLIENTID = "1101940945"
-DHAN_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzIzMTgxNzU0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTk0MDk0NSJ9.px-MnVntQ7nGaf4CM99bCZjZEDqHVUwtzqypF3wprKc4OFrBEzijQ0upetf6hfjwzKP3h8opLTarSsjXog-85Q"
-
-
 if not DEVELOPMENT_MODE:
-    #for production
-    # FYERS_APP_ID="5NYKD87NTH-100"
-    # FYERS_SECRET_ID="XIXJN6AKI5"
-    # FYERS_REDIRECT_URL="https://tradewithappz.co.in"
-
     FYERS_APP_ID="4CIPNEEHU0-100"
     FYERS_SECRET_ID="6BF3KJFCID"
     FYERS_REDIRECT_URL="https://tradewithappz.onrender.com"
