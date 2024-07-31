@@ -30,17 +30,17 @@ services:
     networks:
       - tradewithappz_network
 
-  ngrok:
-    image: wernight/ngrok
-    command: ngrok http web:8000  # Forward traffic to the web service's port 8000
-    ports:
-      - "4040:4040"  # Ngrok web interface for checking tunnels (optional)
-    networks:
-      - tradewithappz_network
-    depends_on:
-      - web
-    environment:
-      - NGROK_AUTHTOKEN=246hyaqewnWwGIFnObATXDJXsEA_DKqtKJVKyZJcjcTZK8ce  # Replace with your actual Ngrok authtoken
+  # ngrok:
+  #   image: wernight/ngrok
+  #   command: ngrok http web:8000  # Forward traffic to the web service's port 8000
+  #   ports:
+  #     - "4040:4040"  # Ngrok web interface for checking tunnels (optional)
+  #   networks:
+  #     - tradewithappz_network
+  #   depends_on:
+  #     - web
+  #   environment:
+  #     - NGROK_AUTHTOKEN=246hyaqewnWwGIFnObATXDJXsEA_DKqtKJVKyZJcjcTZK8ce  # Replace with your actual Ngrok authtoken
 
 networks:
   tradewithappz_network:
