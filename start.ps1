@@ -13,6 +13,9 @@ while (-not $ngrok_url) {
     }
 }
 
+# Append /login to the ngrok URL
+$ngrok_url = "$ngrok_url/login"
+
 # Print the new URL
 Write-Output "Ngrok URL: $ngrok_url"
 
@@ -33,13 +36,13 @@ if (Test-Path $env_file) {
 # Start the docker-compose services
 Start-Process -NoNewWindow -FilePath "docker-compose.exe" -ArgumentList "up"
 
-# Open URLs in Microsoft Edge and arrange the windows
+# Open URL in Microsoft Edge
 Start-Process "msedge.exe" -ArgumentList $ngrok_url
 Start-Sleep -Seconds 5 # Wait for Edge to start
 
-
-# Get Edge processes
+# Get Edge process ID
 $ngrokEdge = Get-Process -Name msedge | Where-Object { $_.MainWindowTitle -match "ngrok" }
+$ngrokEdgeId = $ngrokEdge.Id
 
 # Arrange Edge windows
 Add-Type @"
@@ -55,19 +58,10 @@ $SWP_NOSIZE = 0x0001
 $SWP_NOMOVE = 0x0002
 $HWND_TOP = [IntPtr]::Zero
 
-$screenWidth = [System.Windows.SystemParameters]::PrimaryScreenWidth
-$screenHeight = [System.Windows.SystemParameters]::PrimaryScreenHeight
-
-# 20% width for ngrok
-$ngrokWidth = [math]::Round($screenWidth * 0.2)
-$ngrokHeight = $screenHeight
-$ngrokX = 0
-$ngrokY = 0
-
 # Set window positions
 [WindowHelper]::SetWindowPos($ngrokEdge.MainWindowHandle, $HWND_TOP, $ngrokX, $ngrokY, $ngrokWidth, $ngrokHeight, $SWP_NOSIZE -bor $SWP_NOMOVE)
 
-# Print the ngrok URL in real-time (this keeps the script running and printing the URL)
+# Keep the script running to print the ngrok URL periodically
 while ($true) {
     Write-Output "Ngrok URL: $ngrok_url"
     Start-Sleep -Seconds 60
