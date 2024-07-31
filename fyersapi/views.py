@@ -328,8 +328,6 @@ def close_all_positions(request):
         orderlist = dhan.get_order_list()
         get_pending_order_data = get_pending_orders_dhan(orderlist)
 
-        print("get_pending_order_dataget_pending_order_dataget_pending_order_data", get_pending_order_data)
-
         # CLOSE ALL PENDING ORDERS
         if get_pending_order_data:
             sl_order_id_list =[]
@@ -345,8 +343,6 @@ def close_all_positions(request):
             
             close_response = get_position_close_process(dhan)
 
-            print("close_responseclose_responseclose_response", close_response)
-
             if close_response == False:
                 return JsonResponse({'message': 'NO Open Positions','code': '-99'})
             
@@ -358,8 +354,6 @@ def close_all_positions(request):
         else: 
             # GET POSITION AND CLOSE IT 
             close_response = get_position_close_process(dhan)
-
-            print("close_responseclose_responseclose_response", close_response)
 
             if close_response == False:
                 return JsonResponse({'message': 'No Open Positions','code': '-99'})
@@ -376,8 +370,6 @@ from django.shortcuts import redirect
 from django.http import JsonResponse
 from django.contrib import messages
 from django.conf import settings
-
-
 @csrf_exempt
 def api_close_all_positions(request):
     # Assuming active_broker is fetched from the configuration
@@ -1721,8 +1713,8 @@ async def instantBuyOrderWithSL(request):
             }
 
             response = await sync_to_async(data_instance.place_order)(data=order_data)
-            # print('777777777777777777777777777777777777')
-            response['code'] = 1101
+            if TEST_MODE == True:
+                response['code'] = 1101
             
 
             if response.get("code") == 1101:
@@ -1735,10 +1727,8 @@ async def instantBuyOrderWithSL(request):
                 order_with_status_6 = next(
                     (order for order in allOrderData.get("orderBook", []) if order['status'] == 6 and order["symbol"] == der_symbol),
                     None
-                )           
-                print('order_with_status_6order_with_status_6', order_with_status_6)
+                )  
                 if order_with_status_6:
-                    print('77777777777777777777777777777777777777777777777777777777777777777777777777777777777777')
                     exst_qty = order_with_status_6['qty']
                     new_qty = order_qty + exst_qty
                     total_order_expense = new_qty * ltp
@@ -1769,7 +1759,8 @@ async def instantBuyOrderWithSL(request):
                     buy_order_data = {"id": buy_order_id}
                     order_details = (await sync_to_async(data_instance.orderbook)(data=buy_order_data))["orderBook"][0]
                     traded_price = Decimal(order_details["tradedPrice"])
-                    traded_price = 200
+                    if TEST_MODE == True:
+                        traded_price = 200
 
                     stoplossConf = trade_config_data.scalping_stoploss if trade_config_data.scalping_mode else trade_config_data.default_stoploss
                     default_stoploss = Decimal(stoplossConf)
@@ -1799,7 +1790,9 @@ async def instantBuyOrderWithSL(request):
                     total_purchase_value = traded_price * order_qty
                     sl_price = stoploss_price
                     exp_loss = (traded_price - sl_price) * order_qty
-                    stoploss_order_response["code"] = 1101
+                    if TEST_MODE == True:
+                        stoploss_order_response["code"] = 1101
+
                     if stoploss_order_response["code"] == 1101:
                         await sync_to_async(OpenOrderTempData.objects.create)(
                             symbol=der_symbol,

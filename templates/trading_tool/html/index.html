@@ -243,9 +243,9 @@
             
             {% for item in fund_data.fund_limit %}
             {% if item.id == 10 %}
-                <a href="#" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">FYERS Balance:{{ item.equityAmount|floatformat:2 }}</a>
-                <a href="#" class="btn btn-success fw-semibold lh-sm my-4 mx-2">DHAN Balance:{{ dhan_fund|floatformat:2 }}</a>
-                <button id="updatebrokerdata" target="_blank" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">Loading...</button>
+                <a href="#" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">Account Balance : {{ item.equityAmount|floatformat:2 }}</a>
+                <!-- <a href="#" class="btn btn-success fw-semibold lh-sm my-4 mx-2">DHAN Balance:{{ dhan_fund|floatformat:2 }}</a> -->
+                <!-- <button id="updatebrokerdata" target="_blank" class="btn btn-primary fw-semibold lh-sm my-4 mx-2">Loading...</button> -->
             {% endif %}
             {% endfor %}
               <li class="nav-item dropdown">

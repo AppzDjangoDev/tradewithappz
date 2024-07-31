@@ -33,6 +33,9 @@ DHAN_CLIENTID = os.environ.get('DHAN_CLIENTID', default=None)
 DHAN_ACCESS_TOKEN = os.environ.get('DHAN_ACCESS_TOKEN', default=None)
 
 
+TEST_MODE=os.environ.get('TEST_MODE', default=True)
+
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', default='True')
 

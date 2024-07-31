@@ -14,7 +14,7 @@ while (-not $ngrok_url) {
 }
 
 # Append /login to the ngrok URL
-$ngrok_url = "$ngrok_url/login"
+$login_url = "$ngrok_url/login"
 
 # Print the new URL
 Write-Output "Ngrok URL: $ngrok_url"
@@ -37,7 +37,7 @@ if (Test-Path $env_file) {
 Start-Process -NoNewWindow -FilePath "docker-compose.exe" -ArgumentList "up"
 
 # Open URL in Microsoft Edge
-Start-Process "msedge.exe" -ArgumentList $ngrok_url
+Start-Process "msedge.exe" -ArgumentList $login_url
 Start-Sleep -Seconds 5 # Wait for Edge to start
 
 # Get Edge process ID
