@@ -1284,7 +1284,7 @@ def get_default_lotsize(index):
     if index == 'MIDCPNIFTY':
         return 75
     elif index == 'FINNIFTY':
-        return 40
+        return 25
     elif index == 'NIFTYBANK':
         return 15
     elif index == 'NIFTY50':

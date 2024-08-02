@@ -24,13 +24,13 @@ $env_file = ".env"
 if (Test-Path $env_file) {
     $env_content = Get-Content $env_file
     if ($env_content -match 'NGROK_URL=') {
-        $updated_env_content = $env_content -replace 'NGROK_URL=.*', "NGROK_URL=`"$ngrok_url`""
+        $updated_env_content = $env_content -replace 'NGROK_URL=.*', "NGROK_URL=$ngrok_url"
     } else {
-        $updated_env_content = $env_content + "`r`nNGROK_URL=`"$ngrok_url`""
+        $updated_env_content = $env_content + "`r`nNGROK_URL=$ngrok_url"
     }
     $updated_env_content | Set-Content $env_file
 } else {
-    "NGROK_URL=`"$ngrok_url`"" | Out-File $env_file
+    "NGROK_URL=$ngrok_url" | Out-File $env_file
 }
 
 # Start the docker-compose services
@@ -58,8 +58,12 @@ $SWP_NOSIZE = 0x0001
 $SWP_NOMOVE = 0x0002
 $HWND_TOP = [IntPtr]::Zero
 
-# Set window positions
-[WindowHelper]::SetWindowPos($ngrokEdge.MainWindowHandle, $HWND_TOP, $ngrokX, $ngrokY, $ngrokWidth, $ngrokHeight, $SWP_NOSIZE -bor $SWP_NOMOVE)
+# Check if $ngrokEdge is not null before calling SetWindowPos
+if ($ngrokEdge) {
+    [WindowHelper]::SetWindowPos($ngrokEdge.MainWindowHandle, $HWND_TOP, $ngrokX, $ngrokY, $ngrokWidth, $ngrokHeight, $SWP_NOSIZE -bor $SWP_NOMOVE)
+} else {
+    Write-Output "Ngrok Edge process not found."
+}
 
 # Keep the script running to print the ngrok URL periodically
 while ($true) {
