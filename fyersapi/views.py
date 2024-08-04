@@ -1065,6 +1065,18 @@ class OptionChainView(LoginRequiredMixin, View):
         data_instance = get_data_instance(request)
         conf_data = TradingConfigurations.objects.order_by('-last_updated').first()
         active_broker = conf_data.active_broker
+        fund_data = data_instance.funds()
+        print("fund_datafund_data", fund_data)
+
+        for item in fund_data.get('fund_limit', []):
+            if item.get('title') == 'Total Balance':
+                total_account_balance = item.get('equityAmount')
+            if item.get('title') == 'Realized Profit and Loss':
+                realised_profit = item.get('equityAmount')
+                break
+
+        print("Total Balance Equity Amount:", total_account_balance)
+        print("Realized Profit and Loss Equity Amount:", realised_profit)
 
         forward_trailing_points = conf_data.forward_trailing_points
         reverse_trailing_points = conf_data.reverse_trailing_points
@@ -1154,6 +1166,12 @@ class OptionChainView(LoginRequiredMixin, View):
         remaining_orders = order_limit - total_order_status
         progress_percentage = (remaining_orders / order_limit) * 100
         progress_percentage = round(progress_percentage, 1)
+
+
+
+        print("total_account_balance", total_account_balance)
+
+        
         
         
         
@@ -1161,6 +1179,7 @@ class OptionChainView(LoginRequiredMixin, View):
 
         atm_index = len(pe_options_sorted) // 2  # Calculate the ATM index
         context.update({
+            'total_account_balance': total_account_balance,
             'access_token': request.session.get('access_token'),
             'forward_trailing_points': forward_trailing_points,
             'reverse_trailing_points': reverse_trailing_points,
@@ -1282,7 +1301,7 @@ class ConfigureTradingView(LoginRequiredMixin, FormView):
 
 def get_default_lotsize(index):
     if index == 'MIDCPNIFTY':
-        return 75
+        return 50
     elif index == 'FINNIFTY':
         return 25
     elif index == 'NIFTYBANK':

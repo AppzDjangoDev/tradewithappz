@@ -176,11 +176,11 @@
                 <div class="d-flex align-items-center">
                 {% for option in options_data.data.optionsChain %}
                 {% if option.option_type == ""%}
-                  <div  id="info_form" class="container-fluid pt-5 mt-5">
-                    <div class="row mt-5" >
+                  <div  id="info_form" class="container-fluid mt-5">
+                    <div class="row mt-4" >
                         <!-- Web View -->
                         <p class="card-title fw-semibold fs-4 mt-4" id="optitle">OPTION CHAIN</p>
-                            <div class="row mt-3" style="padding-inline:0px; margin:0px;" >
+                            <div class="row mt-5" style="padding-inline:0px; margin:0px;" >
                                 <div class="col-12">
                                     <input class="form-control fw-bolder fs-5 mt-5 " disabled name="expiry" value="{{expiry_response}}">
                                 </div>
@@ -203,14 +203,19 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="container-fluid my-2 pt-4">
+                            <div class="container-fluid my-2 py-2">
                                 <div class="row">
+                                      <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
+                                        <button id="switch_scalp_mode" class="btn btn-primary spinner btn-lg btn-block w-100 h-100 fw-bold disabled " style="border-radius: 10px; backgorund-color: blue;">Checking..</button>
+                                    </div> 
                                     <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
-                                        <button id="switch_scalp_mode" class="btn btn-primary spinner btn-lg btn-block w-100 h-100 fw-bold disabled" style="border-radius: 10px;">Checking..</button>
+                                        <button id="account_balance" class="btn btn-primary spinner btn-lg btn-block w-100 h-100 fw-bold disabled" style="border-radius: 10px; background-color: blue;">
+                                            Account Balance<br>{{total_account_balance|floatformat:2}}
+                                        </button>
                                     </div>
-                                    <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
+                                    {% comment %} <div class="col-6 d-flex justify-content-center align-items-center" style="height:65px;">
                                         <button id="trailingtodown" class="btn btn-primary btn-lg btn-block w-100 h-100 m-0 fw-bold" style="border-radius: 10px;">TRAIL <i class="ti ti-arrow-down text-warning"></i>{{reverse_trailing_points}}</button>
-                                    </div>
+                                    </div> {% endcomment %}
                                 </div>
                             </div> 
                         </div>
@@ -225,13 +230,13 @@
             <div class="row mt-1">   
                 {% comment %} and option.serial_number != 4   {% endcomment %}
 
-            <div class="col-sm-6 my-2">
+            <div class="col-sm-6 my-1">
                 {% for option in pe_options_with_serial %}
-                {% if option.option_type == "PE" and not  forloop.counter0 > atm_index %}
-                    <div class="alert alert-danger" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
+                {% if option.option_type == "PE" and not  forloop.counter0 > atm_index  %}
+                    <div class="alert alert-danger" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px; border-radius: 10px">
                         <div class="row">
                             <div class="col-4 d-flex justify-content-center align-items-center">
-                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button" style="border-radius: 6px">Buy</button>
+                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button" style="border-radius: 10px">Buy</button>
                             </div>
                             <div class="col-4 text-center">
                                 <input type="hidden" name="der-symbol-{{ option.symbol }}" value="{{ option.symbol }}">
@@ -239,7 +244,7 @@
                                 <input type="hidden" name="opt-ltp" value="{{ option.ltp }}">
                                 <h5 class="card-title text-muted fw-bolder mb-0">
                                     {% if forloop.counter0 == atm_index %}
-                                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                     {% elif forloop.counter0 < atm_index %}
                                         <span style="color: white; background-color: #3597fff7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;{{ atm_index|subtract:forloop.counter0 }}&nbsp;&nbsp;</span>
                                     {% elif forloop.counter0 > atm_index %}
@@ -251,7 +256,7 @@
                                 <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
                             </div>
                             <div class="col-4 d-flex justify-content-center align-items-center">
-                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
+                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 10px">Sell</button>
                             </div>
                         </div>
                     </div>
@@ -262,10 +267,10 @@
             <div class="col-sm-6 my-1">
                 {% for option in ce_options_with_serial %}
                 {% if option.option_type == "CE" and not forloop.counter0 > atm_index %}
-                    <div class="alert alert-success" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px;">
+                    <div class="alert alert-success" role="alert" style="--bs-alert-padding-x: 10px;--bs-alert-padding-y: 10px; border-radius: 10px">
                         <div class="row">
                             <div class="col-4 d-flex justify-content-center align-items-center">
-                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button" style="border-radius: 6px">Buy</button>
+                                <button class="btn btn-success btn-lg btn-block w-100 h-100 fw-bolder fs-5 buy-button" style="border-radius: 10px">Buy</button>
                             </div>
         
                             <div class="col-4 text-center">
@@ -275,7 +280,7 @@
         
                                 <h5 class="card-title text-muted fw-bolder mb-0">
                                     {% if forloop.counter0 == atm_index %}
-                                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                        <span style="color: white; background-color: #0065d0f7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ATM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                     {% elif forloop.counter0 < atm_index %}
                                         <span style="color: white; background-color: #3597fff7; padding: 4px; margin-bottom: 10px; border-radius: 10px; font-size: 75%;">&nbsp;&nbsp;&nbsp;&nbsp;ITM&nbsp;&nbsp;&nbsp;{{ atm_index|subtract:forloop.counter0 }}&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                     {% elif forloop.counter0 > atm_index %}
@@ -287,7 +292,7 @@
                                 <p class="card-text fs-3 fw-bolder" id="der-ltp-{{ option.symbol }}">LTP: {{ option.ltp }}</p>
                             </div>
                             <div class="col-4 d-flex justify-content-center align-items-center">
-                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 6px">Sell</button>
+                                <button class="btn btn-danger btn-lg btn-block w-100 h-100 fw-bolder fs-5 sell-button" style="border-radius: 10px">Sell</button>
                             </div>
                         </div>
                     </div>        
@@ -304,7 +309,7 @@
 
 
 
-<div class="container-fluid">
+<div class="container-fluid m-0 p-0">
     <div class="row ">
                     <!-- Web View -->
                     <div class="col-sm-6 col-xl-6">
@@ -371,7 +376,7 @@
                                 <div class="col-4">
                                 <div class="d-flex justify-content-end">
                                 <div class="text-white p-3 d-flex align-items-center justify-content-center fw-bolder fs-5"
-                                    style="border-radius: 6px; 
+                                    style="border-radius: 10px; 
                                     {% if actual_profit > super_trader_threshold %}
                                         background-color: #28a745; /* Super Trader Zone - Close the Day */
                                     {% elif actual_profit > day_exp_profit %}
@@ -853,18 +858,26 @@
         };
     }
 
+    // Function to get the lot prize based on the symbol and ltpValue
     function getLotPrize(symbol, ltpValue) {
-        switch(symbol) {
+        // Extract the initial characters until the first digit
+        var index = symbol.match(/^[^\d]+/);
+        var extractedSymbol = index ? index[0] : symbol;
+
+        // Use Math.floor to remove the decimal part of ltpValue
+        ltpValue = Math.floor(ltpValue);
+
+        switch(extractedSymbol) {
             case 'MIDCPNIFTY':
-                return ltpValue*75;
+                return ltpValue * 50;
             case 'FINNIFTY':
-                return ltpValue*40;
+                return ltpValue * 25;
             case 'BANKNIFTY':
-                return ltpValue*15;
+                return ltpValue * 15;
             case 'NIFTY':
-                return ltpValue*25;
+                return ltpValue * 25;
             case 'SENSEX':
-                return ltpValue*10;
+                return ltpValue * 10;
             default:
                 return false;
         }
@@ -948,22 +961,12 @@
 
                 // Update the innerHTML of the openPlData element
                 document.getElementById('openPlData').innerHTML = 'P/L:&nbsp;&nbsp;' + plDataFormatted+'&nbsp;₹&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + 'LTP:&nbsp;&nbsp;' + ltpValue + "&nbsp;&nbsp;" ;
-
-
-                //****************************************************************************
-
-                
-              
-
                 // console.log("ltpValueltpValue", ltpValue);
                 var ltpElement = document.querySelector('#der-ltp-' + escapedSymbol);
                 ltpElement.textContent = "LTP: " + ltpValue;
                 // console.log("ltpElementltpElement", ltpElement);
 
             }
-
-            // console.log("hiddenSymbolhiddenSymbol", hiddenSymbol);
-            // console.log("***************************", escapedSymbol);
             // Compare the symbols
             if (symbol === hiddenSymbol) {
                 // Update the corresponding LTP value
@@ -974,15 +977,11 @@
                 escapedSymbol = escapedSymbol.replace('NSE\\:', '');
                 // Use regex to remove the date, strike price, and option type (CE/PE)
                 indexsymbol = escapedSymbol.replace(/[0-9]{2}[A-Z]{3}[0-9]{5}[A-Z]{2}$/, '');
-              
                 console.log('indexsymbolindexsymbol', indexsymbol)
-
-
                 var lotPrice = getLotPrize(indexsymbol,ltpValue);
-                ltpElement.textContent = "LTP: " + ltpValue ;
-                //ltpElement.textContent = "LTP: " + ltpValue + ":" + lotPrice;
-                // console.log("ltpElementltpElement", ltpElement);
+                var ltpValue_v1 = Math.floor(ltpValue);
 
+                ltpElement.textContent = "LTP: " + ltpValue_v1 + "\u00A0\u00A0\u00A0(" + lotPrice + ")";
             }
         } else {
             // Do something else if the type is neither 'if' nor 'sf'
@@ -1018,15 +1017,18 @@
     };
 
     // WebSocket connection for the new WebSocket URL
-    var socketPositions = new WebSocket("wss://" + domain + "/ws/fyerspositionsdata/");
 
-    // Event handler for receiving messages from the positions data WebSocket server
-    socketPositions.onmessage = function(event) {
-        // Process positions data messages
-        console.log("Received positions data message:", event.data);
-        var positionsData = JSON.parse(event.data); // Assuming the data is in JSON format
-        handlePositionsData(positionsData); // Function to handle positions data
-    };
+
+    // need to test it appz
+    // var socketPositions = new WebSocket("wss://" + domain + "/ws/fyerspositionsdata/");
+
+    // // Event handler for receiving messages from the positions data WebSocket server
+    // socketPositions.onmessage = function(event) {
+    //     // Process positions data messages
+    //     console.log("Received positions data message:", event.data);
+    //     var positionsData = JSON.parse(event.data); // Assuming the data is in JSON format
+    //     handlePositionsData(positionsData); // Function to handle positions data
+    // };
 
     // Function to handle positions data
     function handlePositionsData(data) {
