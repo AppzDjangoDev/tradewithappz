@@ -31,9 +31,15 @@ FYERS_APP_ID = os.environ.get('FYERS_APP_ID', default=None)
 FYERS_SECRET_ID = os.environ.get('FYERS_SECRET_ID', default=None)
 DHAN_CLIENTID = os.environ.get('DHAN_CLIENTID', default=None)
 DHAN_ACCESS_TOKEN = os.environ.get('DHAN_ACCESS_TOKEN', default=None)
-
-
 TEST_MODE=os.environ.get('TEST_MODE', default=True)
+
+NGROK_URL="https://spacewear.onrender.com"
+TEST_MODE=False
+DEBUG=True
+FYERS_APP_ID="H9O406XBXW-100"
+FYERS_SECRET_ID="XOVF82L85V"
+DHAN_CLIENTID = "1101940945"
+DHAN_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzIzMTgxNzU0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTk0MDk0NSJ9.px-MnVntQ7nGaf4CM99bCZjZEDqHVUwtzqypF3wprKc4OFrBEzijQ0upetf6hfjwzKP3h8opLTarSsjXog-85Q"
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
