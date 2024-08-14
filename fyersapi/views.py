@@ -44,17 +44,17 @@ def brokerconnect(request):
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
 
-    # Add your Dhan Client ID and Access Token
-    dhan_client_id = settings.DHAN_CLIENTID
-    dhan_access_token = settings.DHAN_ACCESS_TOKEN
+    # # Add your Dhan Client ID and Access Token
+    # dhan_client_id = settings.DHAN_CLIENTID
+    # dhan_access_token = settings.DHAN_ACCESS_TOKEN
 
-    dhan = dhanhq(dhan_client_id,dhan_access_token)
-    # Get fund limits
-    fund__data = dhan.get_fund_limits()
+    # dhan = dhanhq(dhan_client_id,dhan_access_token)
+    # # Get fund limits
+    # fund__data = dhan.get_fund_limits()
 
-    print("*********************************************************")
-    print(fund__data)
-    print("*********************************************************")
+    # print("*********************************************************")
+    # print(fund__data)
+    # print("*********************************************************")
 
     # Replace these values with your actual API credentials
     # redirect_uri = "https://tradewithappz.co.in/dashboard"
