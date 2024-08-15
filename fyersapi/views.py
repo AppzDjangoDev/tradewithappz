@@ -43,6 +43,7 @@ def brokerconnect(request):
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
+    print("redirect_uriredirect_uriredirect_uriredirect_uri", redirect_uri)
 
     # # Add your Dhan Client ID and Access Token
     # dhan_client_id = settings.DHAN_CLIENTID
@@ -72,6 +73,7 @@ def brokerconnect(request):
     # dhan = dhanhq("client_id","access_token")
     # Generate the auth code using the session model
     response = session.generate_authcode()
+    print("responseresponseresponseresponseresponseresponseresponse", response)
     # #print the auth code received in the response
     # You can redirect to another page or render a template after #printing
     return redirect(response)  # Assuming 'home' is the name of a URL pattern you want to redirect to
@@ -1204,7 +1206,7 @@ class OptionChainView(LoginRequiredMixin, View):
             'straddle_capital' : conf_data.straddle_capital_usage*2,
             'straddle_amount_limit' : conf_data.straddle_amount_limit,
             'active_broker': active_broker,
-            'dhan_fund' : dhan_fund['data']['availabelBalance'],
+            # 'dhan_fund' : dhan_fund['data']['availabelBalance'],
             'progress_percentage' : progress_percentage
         })
         return render(request, template, context)

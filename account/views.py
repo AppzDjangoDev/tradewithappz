@@ -84,13 +84,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             self.fund_data = {'code': -1, 'message': f'Error occurred: {str(e)}', 's': 'error'}
             #print("Error occurred while fetching fund data:", e)
             
-        try:
-            dhan = dhanhq(dhan_client_id, dhan_access_token)
-            self.dhan_fund = dhan.get_fund_limits()
-            self.orderlist = dhan.get_order_list()
+        # try:
+        #     dhan = dhanhq(dhan_client_id, dhan_access_token)
+        #     self.dhan_fund = dhan.get_fund_limits()
+        #     self.orderlist = dhan.get_order_list()
             
-        except AttributeError as e:
-            self.fund_data = {'code': -1, 'message': f'Error occurred: {str(e)}', 's': 'error'}
+        # except AttributeError as e:
+        #     self.fund_data = {'code': -1, 'message': f'Error occurred: {str(e)}', 's': 'error'}
             
 
         self.total_order_status = 0
@@ -143,7 +143,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['expected_brokerage'] = self.expected_brokerage
         context['recent_order_data'] = self.recent_order_data
         context['positions_data'] = self.positions_data
-        context['dhan_fund'] = self.dhan_fund['data']['availabelBalance']
+        # context['dhan_fund'] = self.dhan_fund['data']['availabelBalance']
         context['active_broker'] = self.active_broker
 
         return context

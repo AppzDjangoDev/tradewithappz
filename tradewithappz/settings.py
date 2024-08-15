@@ -26,12 +26,12 @@ SECRET_KEY="test"
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-NGROK_URL = os.environ.get('NGROK_URL', default=None)
-FYERS_APP_ID = os.environ.get('FYERS_APP_ID', default=None)
-FYERS_SECRET_ID = os.environ.get('FYERS_SECRET_ID', default=None)
-DHAN_CLIENTID = os.environ.get('DHAN_CLIENTID', default=None)
-DHAN_ACCESS_TOKEN = os.environ.get('DHAN_ACCESS_TOKEN', default=None)
-TEST_MODE=os.environ.get('TEST_MODE', default=True)
+# NGROK_URL = os.environ.get('NGROK_URL', default=None)
+# FYERS_APP_ID = os.environ.get('FYERS_APP_ID', default=None)
+# FYERS_SECRET_ID = os.environ.get('FYERS_SECRET_ID', default=None)
+# DHAN_CLIENTID = os.environ.get('DHAN_CLIENTID', default=None)
+# DHAN_ACCESS_TOKEN = os.environ.get('DHAN_ACCESS_TOKEN', default=None)
+# TEST_MODE=os.environ.get('TEST_MODE', default=True)
 
 NGROK_URL="https://spacewear.onrender.com"
 TEST_MODE=False
