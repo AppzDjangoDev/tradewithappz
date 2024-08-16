@@ -43,23 +43,6 @@ def brokerconnect(request):
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
-    print("redirect_uriredirect_uriredirect_uriredirect_uri", redirect_uri)
-
-    # # Add your Dhan Client ID and Access Token
-    # dhan_client_id = settings.DHAN_CLIENTID
-    # dhan_access_token = settings.DHAN_ACCESS_TOKEN
-
-    # dhan = dhanhq(dhan_client_id,dhan_access_token)
-    # # Get fund limits
-    # fund__data = dhan.get_fund_limits()
-
-    # print("*********************************************************")
-    # print(fund__data)
-    # print("*********************************************************")
-
-    # Replace these values with your actual API credentials
-    # redirect_uri = "https://tradewithappz.co.in/dashboard"
-    # redirect_uri = "https://aabe-2405-201-f007-417b-7d9c-6736-527b-61a6.ngrok-free.app/dashboard"
     response_type = "code"  
     state = "sample_state"
     # Create a session model with the provided credentials
@@ -69,25 +52,16 @@ def brokerconnect(request):
         redirect_uri=redirect_uri,
         response_type=response_type
     )
-        
-    # dhan = dhanhq("client_id","access_token")
-    # Generate the auth code using the session model
     response = session.generate_authcode()
-    print("responseresponseresponseresponseresponseresponseresponse", response)
-    # #print the auth code received in the response
-    # You can redirect to another page or render a template after #printing
     return redirect(response)  # Assuming 'home' is the name of a URL pattern you want to redirect to
 
 
 
 def get_accese_token(request):
     # return redirect('some_redirect_url')
-    # Get client_id and secret_key from settings.py
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
-    # redirect_uri = "https://tradewithappz.co.in/dashboard"
-    # redirect_uri = "https://aabe-2405-201-f007-417b-7d9c-6736-527b-61a6.ngrok-free.app/dashboard"
     response_type = "code" 
     grant_type = "authorization_code"  
     # The authorization code received from Fyers after the user grants access
@@ -127,8 +101,6 @@ def get_accese_token_store_session(request):
     # redirect_uri = "https://aabe-2405-201-f007-417b-7d9c-6736-527b-61a6.ngrok-free.app/dashboard"
     response_type = "code" 
     grant_type = "authorization_code"  
-    # The authorization code received from Fyers after the user grants access
-    # auth_code = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkubG9naW4uZnllcnMuaW4iLCJpYXQiOjE3MTEyNzg2NDgsImV4cCI6MTcxMTMwODY0OCwibmJmIjoxNzExMjc4MDQ4LCJhdWQiOiJbXCJ4OjBcIiwgXCJ4OjFcIiwgXCJ4OjJcIiwgXCJkOjFcIiwgXCJkOjJcIiwgXCJ4OjFcIiwgXCJ4OjBcIl0iLCJzdWIiOiJhdXRoX2NvZGUiLCJkaXNwbGF5X25hbWUiOiJZUzA1MTQxIiwib21zIjoiSzEiLCJoc21fa2V5IjoiNGQ0OWQzMzA2MmM4YzMyOTA4OGEyMzZkMWVkZDI0MDhhODYyY2QyZDdlMmI2M2Y4NjI3N2JkZGUiLCJub25jZSI6IiIsImFwcF9pZCI6Ikg5TzQwNlhCWFciLCJ1dWlkIjoiNTdhYzQ2MmM0YzkxNGI0MzlmMGY3OTc3MGRmMDM0YTEiLCJpcEFkZHIiOiIwLjAuMC4wIiwic2NvcGUiOiIifQ.RhnYqWn9hqR5X_yg5wHKcOGCkGFnAb4Ms2xbToDMPAw"
     auth_code = request.session.get('auth_code')
     # Create a session object to handle the Fyers API authentication and token generation
     session = fyersModel.SessionModel(

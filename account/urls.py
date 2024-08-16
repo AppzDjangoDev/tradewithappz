@@ -3,7 +3,6 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from account.views import UserRegistrationView
 
-
 urlpatterns = [
     # landing page
     path('', views.homePage, name = 'home'),
@@ -19,11 +18,9 @@ urlpatterns = [
     
     
     path('api/login/', views.login_view, name='api_login'),
+    path('api/logout/', views.api_logout, name='api_logout'),
+    path('api/csrf-token/', views.csrf_token_view, name='csrf-token'),
     
 
-   
-
-
-      
 
 ]

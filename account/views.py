@@ -34,6 +34,7 @@ from django.contrib import messages
 import time
 from django.contrib.auth.mixins import LoginRequiredMixin
 from dhanhq import dhanhq
+from account.models import CommonConfig
 
 
 
@@ -201,36 +202,6 @@ class UserloginView(View):
                 return render(request, template, context)
             
 
-from django.contrib.auth import authenticate
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-
-@csrf_exempt
-def login_view(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
-            
-            user = authenticate(request, username=username, password=password)
-            
-            if user is not None:
-                # Authentication successful
-                return JsonResponse({'message': 'Login successful'}, status=200)
-            else:
-                # Authentication failed
-                return JsonResponse({'error': 'Invalid username or password'}, status=401)
-        
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
-    return JsonResponse({'error': 'Invalid HTTP method'}, status=405)
-
-
-
-
 class UserRegistrationView(CreateView):
     form_class = CustomUserCreationForm
     template_name = "trading_tool/html/authentication-register.html"
@@ -264,4 +235,83 @@ class SuccessView(View):
         context={}
         #print("context", context)
         return render(request, template, context)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate
+from django.conf import settings
+from datetime import datetime
+import json
+
+@csrf_exempt
+def login_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+
+            print("passwordpassword", password)
+            print('usernameusername', username)
+            
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                # Authentication successful
+                client_id = settings.FYERS_APP_ID
+                secret_key = settings.FYERS_SECRET_ID
+                config_data = CommonConfig.objects.filter(param="access_token").first()
+                # Check if the access_token exists
+                if config_data is None or not config_data.value:
+                    # Return JSON response with the specific message
+                    return JsonResponse({
+                        "message": "Please login in web with Fyers then retry with the mobile app."
+                    }, status=402)  # HTTP 402 Payment Required status code
+                
+                access_token = config_data.value
+                
+                # Get current date and time
+                now = datetime.now()
+                timestamp = now.strftime('%Y-%m-%d %H:%M:%S')  # Format timestamp
+                date = now.date().isoformat()  # Format date
+
+                return JsonResponse({
+                    'message': 'Login successful',
+                    'access_token': access_token,
+                    'client_id': client_id,
+                    'secret_key': secret_key,
+                    'timestamp': timestamp,
+                    'date': date
+                }, status=200)
+            else:
+                # Authentication failed
+                return JsonResponse({'error': 'Invalid username or password'}, status=401)
         
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    return JsonResponse({'error': 'Invalid HTTP method'}, status=405)
+
+from django.http import JsonResponse
+from django.contrib.auth import logout
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth import logout
+
+@csrf_exempt
+def api_logout(request):
+    if request.method == 'POST':
+        logout(request)
+        return JsonResponse({'message': 'Successfully logged out.'}, status=200)
+    return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+    
+        
+from django.middleware.csrf import get_token
+from django.http import JsonResponse
+
+def csrf_token_view(request):
+    csrf_token = get_token(request)
+    print("csrf_tokencsrf_tokencsrf_token", csrf_token)
+    return JsonResponse({'csrf_token': csrf_token}, status=200)
