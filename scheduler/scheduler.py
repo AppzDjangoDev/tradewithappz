@@ -194,6 +194,49 @@ def automate_eod_task():
         logger.error(f"Error running scheduled task: {e}")
 
 
+def refresh_access_token():
+    logger.info("Refreshing access token.")
+    try:
+        # Get the refresh token from the database
+        token_data = CommonConfig.objects.filter(param="refresh_token").get()
+        refresh_token = token_data.value
+        client_id = settings.FYERS_APP_ID
+        secret_key = settings.FYERS_SECRET_ID
+        redirect_uri = settings.FYERS_REDIRECT_URL + "/dashboard"
+
+        # Create a session object to handle the Fyers API authentication and token refresh
+        session = fyersModel.SessionModel(
+            client_id=client_id,
+            secret_key=secret_key,
+            redirect_uri=redirect_uri,
+            response_type="code",
+            grant_type="refresh_token"
+        )
+        session.set_token(refresh_token)
+        response = session.refresh_token()
+        access_token = response.get('access_token')
+        new_refresh_token = response.get('refresh_token')
+
+        if access_token and new_refresh_token:
+            # Remove existing tokens from the database
+            CommonConfig.objects.filter(param__in=['access_token', 'refresh_token']).delete()
+            
+            # Insert new tokens into the database
+            CommonConfig.objects.create(
+                param='access_token',
+                value=access_token
+            )
+            CommonConfig.objects.create(
+                param='refresh_token',
+                value=new_refresh_token
+            )
+            logger.info("Access token refreshed successfully.")
+        else:
+            logger.error("Failed to refresh access token. Missing access_token or refresh_token.")
+    except Exception as e:
+        logger.error(f"Error refreshing access token: {e}")
+
+
 def resetovertradestatus():
     logger.info("Scheduled task is running.")
     try:
@@ -209,6 +252,7 @@ def start():
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.add_job(automate_eod_task, CronTrigger(hour=15, minute=00))
     scheduler.add_job(resetovertradestatus, CronTrigger(hour=8, minute=35))
+    scheduler.add_job(refresh_access_token, IntervalTrigger(minutes=15)) 
     # scheduler.add_job(automate_eod_task,CronTrigger(day_of_week='mon-fri',hour='9-15', minute=30))
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.start()

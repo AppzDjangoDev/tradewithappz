@@ -325,7 +325,7 @@ from fyersapi.models import TradingConfigurations
 def fetch_trade_configurations(request):
     try:
         # Fetch the latest TradingConfigurations instance
-        latest_config = TradingConfigurations.objects.latest('last_updated')
+        latest_config = TradingConfigurations.objects.latest('last_updated').first()
         
         # Serialize the data
         data = {
