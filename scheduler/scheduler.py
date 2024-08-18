@@ -252,7 +252,7 @@ def start():
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.add_job(automate_eod_task, CronTrigger(hour=15, minute=00))
     scheduler.add_job(resetovertradestatus, CronTrigger(hour=8, minute=35))
-    scheduler.add_job(refresh_access_token, IntervalTrigger(minutes=15)) 
+    # scheduler.add_job(refresh_access_token, IntervalTrigger(minutes=15)) 
     # scheduler.add_job(automate_eod_task,CronTrigger(day_of_week='mon-fri',hour='9-15', minute=30))
     # scheduler.add_job(automate_eod_task, IntervalTrigger(seconds=10))
     scheduler.start()
