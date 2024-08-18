@@ -40,7 +40,6 @@ class Brokerconfig(LoginRequiredMixin, View):
     
 from django.shortcuts import redirect
 from django.conf import settings
-from fyers_api import fyersModel
 
 def brokerconnect(request, app=None):
     # Get client_id, secret_key, and redirect_uri from settings.py

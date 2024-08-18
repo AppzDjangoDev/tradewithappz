@@ -284,7 +284,7 @@ def login_view(request):
                     'client_id': client_id,
                     'secret_key': secret_key,
                     'timestamp': timestamp,
-                    'date': date
+                    'date': date,
                     'auth_code_url': auth_code_url
                 }, status=200)
             else:
