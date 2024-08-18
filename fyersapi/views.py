@@ -38,22 +38,35 @@ class Brokerconfig(LoginRequiredMixin, View):
         context = {}
         return render(request, template, context)
     
-def brokerconnect(request):
-    # Get client_id and secret_key from settings.py
+from django.shortcuts import redirect
+from django.conf import settings
+from fyers_api import fyersModel
+
+def brokerconnect(request, app=None):
+    # Get client_id, secret_key, and redirect_uri from settings.py
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
-    redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
-    response_type = "code"  
+    redirect_uri = settings.FYERS_REDIRECT_URL + "/dashboard"
+    response_type = "code"
     state = "sample_state"
+    
     # Create a session model with the provided credentials
     session = fyersModel.SessionModel(
         client_id=client_id,
         secret_key=secret_key,
         redirect_uri=redirect_uri,
-        response_type=response_type
+        response_type=response_type,
+        state=state
     )
+    
+    # Generate the auth code URL
     response = session.generate_authcode()
-    return redirect(response)  # Assuming 'home' is the name of a URL pattern you want to redirect to
+    
+    # If 'app' is provided, return the generated URL; otherwise, redirect to it
+    if app:
+        return response
+    
+    return redirect(response)
 
 
 
@@ -261,7 +274,6 @@ def close_all_positions(request):
         order_data = fyers.orderbook()
 
         order_book = order_data["orderBook"]
-        print("order_bookorder_bookorder_book")
 
         # Create a set of order IDs with status 6
         orders_with_status_6 = {order["id"] for order in order_book if order["status"] == 6}
@@ -282,7 +294,6 @@ def close_all_positions(request):
             "productType": ["INTRADAY"]
         }
         response = fyers.exit_positions(data=data)
-        print("responseresponseresponse", response)
 
         if 'message' in response:
             message = response['message']

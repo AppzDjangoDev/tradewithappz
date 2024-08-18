@@ -256,8 +256,10 @@ def login_view(request):
             print('usernameusername', username)
             
             user = authenticate(request, username=username, password=password)
+
             
             if user is not None:
+                auth_code_url = brokerconnect(request, app=True)
                 # Authentication successful
                 client_id = settings.FYERS_APP_ID
                 secret_key = settings.FYERS_SECRET_ID
@@ -283,6 +285,7 @@ def login_view(request):
                     'secret_key': secret_key,
                     'timestamp': timestamp,
                     'date': date
+                    'auth_code_url': auth_code_url
                 }, status=200)
             else:
                 # Authentication failed
