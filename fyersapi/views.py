@@ -1104,6 +1104,7 @@ class OptionChainView(LoginRequiredMixin, View):
             return redirect('login')
 
         options_data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 4, "timestamp": first_expiry_ts}
+        print("options_dataoptions_dataoptions_dataoptions_data", options_data)
 
         try:
             response = data_instance.optionchain(data=options_data)
