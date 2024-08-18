@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/login/', views.login_view, name='api_login'),
     path('api/logout/', views.api_logout, name='api_logout'),
     path('api/csrf-token/', views.csrf_token_view, name='csrf-token'),
+    path('api/fetch-trade-configurations/', views.fetch_trade_configurations, name='fetch_trade_configurations'),
     
 
 

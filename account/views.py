@@ -318,3 +318,43 @@ def csrf_token_view(request):
     csrf_token = get_token(request)
     print("csrf_tokencsrf_tokencsrf_token", csrf_token)
     return JsonResponse({'csrf_token': csrf_token}, status=200)
+
+from django.http import JsonResponse
+from fyersapi.models import TradingConfigurations
+
+def fetch_trade_configurations(request):
+    try:
+        # Fetch the latest TradingConfigurations instance
+        latest_config = TradingConfigurations.objects.latest('last_updated')
+        
+        # Serialize the data
+        data = {
+            'default_stoploss': str(latest_config.default_stoploss),
+            'default_order_qty': latest_config.default_order_qty,
+            'reward_ratio': latest_config.reward_ratio,
+            'max_loss': latest_config.max_loss,
+            'max_trade_count': latest_config.max_trade_count,
+            'capital_limit_per_order': latest_config.capital_limit_per_order,
+            'capital_usage_limit': latest_config.capital_usage_limit,
+            'forward_trailing_points': latest_config.forward_trailing_points,
+            'trailing_to_top_points': latest_config.trailing_to_top_points,
+            'reverse_trailing_points': latest_config.reverse_trailing_points,
+            'stoploss_limit_slippage': str(latest_config.stoploss_limit_slippage),
+            'last_updated': latest_config.last_updated.isoformat(),
+            'averaging_limit': latest_config.averaging_limit,
+            'order_quantity_mode': latest_config.order_quantity_mode,
+            'scalping_amount_limit': latest_config.scalping_amount_limit,
+            'scalping_mode': latest_config.scalping_mode,
+            'scalping_stoploss': str(latest_config.scalping_stoploss),
+            'scalping_ratio': latest_config.scalping_ratio,
+            'straddle_amount_limit': latest_config.straddle_amount_limit,
+            'straddle_capital_usage': latest_config.straddle_capital_usage,
+            'over_trade_status': latest_config.over_trade_status,
+            'averaging_qty': latest_config.averaging_qty,
+            'active_broker': latest_config.active_broker,
+        }
+        
+        return JsonResponse(data)
+    
+    except TradingConfigurations.DoesNotExist:
+        return JsonResponse({'error': 'No trading configurations found.'}, status=404)
