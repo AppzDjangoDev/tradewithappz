@@ -354,7 +354,7 @@ def fetch_trade_configurations(request):
             'active_broker': latest_config.active_broker,
         }
         
-        return JsonResponse(data)
+        return JsonResponse(data, status=200)
     
     except TradingConfigurations.DoesNotExist:
         return JsonResponse({'error': 'No trading configurations found.'}, status=404)
