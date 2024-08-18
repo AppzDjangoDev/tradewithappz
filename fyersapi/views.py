@@ -1104,10 +1104,15 @@ class OptionChainView(LoginRequiredMixin, View):
             return redirect('login')
 
         options_data = {"symbol": f"{exchange}{slug}-INDEX", "strikecount": 4, "timestamp": first_expiry_ts}
+        print("-------------------------------------------------------------")
         print("options_dataoptions_dataoptions_dataoptions_data", options_data)
+        print("-------------------------------------------------------------")
 
         try:
             response = data_instance.optionchain(data=options_data)
+            print("-------------------------------------------------------------")
+            print("responseresponseresponseresponse", response)
+            print("-------------------------------------------------------------")
         except AttributeError as e:
             error_message = f'Error occurred while fetching options data: {str(e)}'
             messages.error(request, error_message)
