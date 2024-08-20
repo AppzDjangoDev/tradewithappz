@@ -33,13 +33,15 @@ DHAN_CLIENTID = os.environ.get('DHAN_CLIENTID', default=None)
 DHAN_ACCESS_TOKEN = os.environ.get('DHAN_ACCESS_TOKEN', default=None)
 TEST_MODE=os.environ.get('TEST_MODE', default=True)
 
+
+
 # NGROK_URL="https://spacewear.onrender.com"
-# TEST_MODE=False
-# DEBUG=True
-# FYERS_APP_ID="H9O406XBXW-100"
-# FYERS_SECRET_ID="XOVF82L85V"
-# DHAN_CLIENTID = "1101940945"
-# DHAN_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzIzMTgxNzU0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTk0MDk0NSJ9.px-MnVntQ7nGaf4CM99bCZjZEDqHVUwtzqypF3wprKc4OFrBEzijQ0upetf6hfjwzKP3h8opLTarSsjXog-85Q"
+if TEST_MODE:
+    # DEBUG=True
+    FYERS_APP_ID="5NYKD87NTH-100"
+    FYERS_SECRET_ID="XIXJN6AKI5"
+    # DHAN_CLIENTID = "1101940945"
+    # DHAN_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzIzMTgxNzU0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTk0MDk0NSJ9.px-MnVntQ7nGaf4CM99bCZjZEDqHVUwtzqypF3wprKc4OFrBEzijQ0upetf6hfjwzKP3h8opLTarSsjXog-85Q"
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -218,7 +220,7 @@ DATE_INPUT_FORMATS = [
 ]
 
 # DEVELOPMENT_MODE=False  
-DEVELOPMENT_MODE=True  
+# DEVELOPMENT_MODE=True  
 
 CHANNEL_LAYERS = {
     'default': {
@@ -242,10 +244,10 @@ FYERS_REDIRECT_URL = NGROK_URL
 CSRF_TRUSTED_ORIGINS = [NGROK_URL]
 
 
-if not DEVELOPMENT_MODE:
-    FYERS_APP_ID="4CIPNEEHU0-100"
-    FYERS_SECRET_ID="6BF3KJFCID"
-    FYERS_REDIRECT_URL="https://tradewithappz.onrender.com"
+# if not DEVELOPMENT_MODE:
+#     FYERS_APP_ID="4CIPNEEHU0-100"
+#     FYERS_SECRET_ID="6BF3KJFCID"
+#     FYERS_REDIRECT_URL="https://tradewithappz.onrender.com"
 
 DEFAULT_BROKERAGE=20
 

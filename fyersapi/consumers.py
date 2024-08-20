@@ -174,7 +174,7 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         self.fyers.keep_running()
 
     def on_message(self, message):
-        #print("Message:", message)
+        print("Message>>>>>>>>>>>>>>>>:", message)
         self.send(text_data=f"{message}")
 
     def on_error(self, message):

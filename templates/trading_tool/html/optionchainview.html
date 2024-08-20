@@ -885,6 +885,16 @@
 
     // Function to update the data container with the received message
     function updateData(message, symbolList) {
+        console.log("messagemessagemessage", message)
+
+        // Check if the message is a plain text error and not a valid JSON string
+        if (message.startsWith('Error:')) {
+            // Handle specific error messages
+            if (message.includes("'Mode change failed'") || message.includes("'subscription failed'")) {
+                alert("Fyers server-side issue, please try again later.");
+            }
+            return; // Stop further processing
+        }
         // Show spinner initially
         // Print the list of symbols
         var dataContainer = document.getElementById("data-index");
@@ -893,6 +903,8 @@
         var message = JSON.parse(message);
         // console.log("messagemessagemessage", message);
         // Check if the type is "if"
+            // Error handling for specific error messages
+
         if (message.type === 'if') {
             // Select the element by its ID
             refreshButton.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
@@ -984,6 +996,8 @@
                 ltpElement.textContent = "LTP: " + ltpValue_v1 + "\u00A0\u00A0\u00A0(" + lotPrice + ")";
             }
         } else {
+            alert("Fyers server-side issue, please try again later.");
+            return; // Stop further processing if an error occurs
             // Do something else if the type is neither 'if' nor 'sf'
             // console.log("Type is not 'if' or 'sf'.");
         }
@@ -993,8 +1007,8 @@
     var urlParts = window.location.pathname.split('/');
 
     // Create a base domain string
-    var domain = '//' + window.location.hostname;
-    conssole.log('domaindomain', domain)
+    var domain =  window.location.hostname;
+    console.log('domaindomain', domain)
 
     // Extract the last part of the pathname
     var lastKeyword = window.location.pathname.split('/').filter(Boolean).pop();
@@ -1016,21 +1030,6 @@
         var message = event.data;
         updateData(message, symbolList);
     };
-
-    // WebSocket connection for the new WebSocket URL
-
-
-    // need to test it appz
-    // var socketPositions = new WebSocket("wss://" + domain + "/ws/fyerspositionsdata/");
-
-    // // Event handler for receiving messages from the positions data WebSocket server
-    // socketPositions.onmessage = function(event) {
-    //     // Process positions data messages
-    //     console.log("Received positions data message:", event.data);
-    //     var positionsData = JSON.parse(event.data); // Assuming the data is in JSON format
-    //     handlePositionsData(positionsData); // Function to handle positions data
-    // };
-
     // Function to handle positions data
     function handlePositionsData(data) {
         // Implement your logic to handle positions data here
@@ -1042,18 +1041,18 @@
         console.log("WebSocket error:", error);
     };
 
-    socketPositions.onerror = function(error) {
+    {% comment %} socketPositions.onerror = function(error) {
         console.log("WebSocket error:", error);
-    };
+    }; {% endcomment %}
 
     // WebSocket connection close handling
     socketIndex.onclose = function(event) {
         console.log("WebSocket connection closed:", event.reason);
     };
-
+{% comment %} 
     socketPositions.onclose = function(event) {
         console.log("WebSocket connection closed:", event.reason);
-    };
+    }; {% endcomment %}
 
 
     // Close the WebSocket connection when the page is unloaded (refreshed or navigated away)

@@ -746,7 +746,7 @@
   
     });
   </script>
-
+  <script src="{% static 'trading_tool/assets/js/dashboard.js' %}"></script>
   {% endblock %}
 
   <script>
@@ -833,7 +833,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="{% static 'trading_tool/assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
-<script src="{% static 'trading_tool/assets/js/dashboard.js' %}"></script>
 
 
 
@@ -841,7 +840,8 @@
 
 
 
-<script>
+
+{% comment %} <script>
   document.addEventListener('DOMContentLoaded', function() {
     const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
     const currentTheme = localStorage.getItem('theme');
@@ -866,7 +866,7 @@
 
     toggleSwitch.addEventListener('change', switchTheme, false);
   });     
-</script>
+</script> {% endcomment %}
 
 
 
