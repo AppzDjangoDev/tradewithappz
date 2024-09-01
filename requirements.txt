@@ -38,6 +38,7 @@ django-environ==0.10.0
 django-shopping-cart==0.1
 django-toast-messages==0.1
 djangorestframework==3.15.2
+docker==7.1.0
 environ==1.0
 fastjsonschema==2.19.1
 frozenlist==1.4.1

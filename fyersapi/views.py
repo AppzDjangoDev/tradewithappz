@@ -28,6 +28,8 @@ import datetime
 from asgiref.sync import sync_to_async
 from dhanhq import dhanhq
 from django.views.decorators.http import require_GET
+from django.shortcuts import redirect
+from django.conf import settings
 
 
 
@@ -38,8 +40,7 @@ class Brokerconfig(LoginRequiredMixin, View):
         context = {}
         return render(request, template, context)
     
-from django.shortcuts import redirect
-from django.conf import settings
+
 
 def brokerconnect(request, app=None):
     # Get client_id, secret_key, and redirect_uri from settings.py
@@ -64,7 +65,7 @@ def brokerconnect(request, app=None):
     # If 'app' is provided, return the generated URL; otherwise, redirect to it
     if app:
         return response
-    
+
     return redirect(response)
 
 
@@ -77,7 +78,6 @@ def get_accese_token(request):
     response_type = "code" 
     grant_type = "authorization_code"  
     # The authorization code received from Fyers after the user grants access
-    # auth_code = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkubG9naW4uZnllcnMuaW4iLCJpYXQiOjE3MTEyNzg2NDgsImV4cCI6MTcxMTMwODY0OCwibmJmIjoxNzExMjc4MDQ4LCJhdWQiOiJbXCJ4OjBcIiwgXCJ4OjFcIiwgXCJ4OjJcIiwgXCJkOjFcIiwgXCJkOjJcIiwgXCJ4OjFcIiwgXCJ4OjBcIl0iLCJzdWIiOiJhdXRoX2NvZGUiLCJkaXNwbGF5X25hbWUiOiJZUzA1MTQxIiwib21zIjoiSzEiLCJoc21fa2V5IjoiNGQ0OWQzMzA2MmM4YzMyOTA4OGEyMzZkMWVkZDI0MDhhODYyY2QyZDdlMmI2M2Y4NjI3N2JkZGUiLCJub25jZSI6IiIsImFwcF9pZCI6Ikg5TzQwNlhCWFciLCJ1dWlkIjoiNTdhYzQ2MmM0YzkxNGI0MzlmMGY3OTc3MGRmMDM0YTEiLCJpcEFkZHIiOiIwLjAuMC4wIiwic2NvcGUiOiIifQ.RhnYqWn9hqR5X_yg5wHKcOGCkGFnAb4Ms2xbToDMPAw"
     auth_code = request.session.get(' ')
     # Create a session object to handle the Fyers API authentication and token generation
     session = fyersModel.SessionModel(
@@ -104,13 +104,10 @@ def get_accese_token(request):
         
 
 def get_accese_token_store_session(request):
-    # return redirect('some_redirect_url')
     # Get client_id and secret_key from settings.py
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL+"/dashboard"
-    # redirect_uri = "https://tradewithappz.co.in/dashboard"
-    # redirect_uri = "https://aabe-2405-201-f007-417b-7d9c-6736-527b-61a6.ngrok-free.app/dashboard"
     response_type = "code" 
     grant_type = "authorization_code"  
     auth_code = request.session.get('auth_code')
@@ -132,10 +129,14 @@ def get_accese_token_store_session(request):
     if access_token and refresh_token:
         request.session['access_token'] = access_token
         request.session['refresh_token'] = refresh_token
-        obj, created = CommonConfig.objects.update_or_create(
+        obj1, created = CommonConfig.objects.update_or_create(
                 param='access_token',
                 defaults={"value": access_token}
             )
+        obj2, created = CommonConfig.objects.update_or_create(
+                    param='refresh_token',
+                    defaults={"value": refresh_token}
+                )
     else:
         #print("access_token or refresh_token missing")
         pass

@@ -263,15 +263,18 @@ def login_view(request):
                 # Authentication successful
                 client_id = settings.FYERS_APP_ID
                 secret_key = settings.FYERS_SECRET_ID
-                config_data = CommonConfig.objects.filter(param="access_token").first()
+                access_data = CommonConfig.objects.filter(param="access_token").first()
+                refresh_data = CommonConfig.objects.filter(param="refresh_token").first()
                 # Check if the access_token exists
-                if config_data is None or not config_data.value:
+                if access_data is None or not access_data.value and refresh_data is None or not refresh_data.value:
                     # Return JSON response with the specific message
                     return JsonResponse({
                         "message": "Please login in web with Fyers then retry with the mobile app."
                     }, status=402)  # HTTP 402 Payment Required status code
                 
-                access_token = config_data.value
+                access_token = access_data.value
+                refresh_token = refresh_data.value
+                print("access_tokenaccess_tokenaccess_token")
                 
                 # Get current date and time
                 now = datetime.now()
@@ -280,7 +283,8 @@ def login_view(request):
 
                 return JsonResponse({
                     'message': 'Login successful',
-                    'access_token': access_token,
+                    'access_token': refresh_token,
+                    'refresh_token': refresh_token,
                     'client_id': client_id,
                     'secret_key': secret_key,
                     'timestamp': timestamp,
@@ -314,6 +318,7 @@ def api_logout(request):
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
 
+@csrf_exempt
 def csrf_token_view(request):
     csrf_token = get_token(request)
     print("csrf_tokencsrf_tokencsrf_token", csrf_token)
@@ -358,3 +363,42 @@ def fetch_trade_configurations(request):
     
     except TradingConfigurations.DoesNotExist:
         return JsonResponse({'error': 'No trading configurations found.'}, status=404)
+
+
+# from django.http import JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+# from django.views.decorators.http import require_POST
+# import docker
+# import json
+
+# client = docker.from_env()
+
+# @csrf_exempt
+# @require_POST
+# def restart_container(request):
+#     try:
+#         data = json.loads(request.body)
+#         container_id = data.get('container_id')
+#         if not container_id:
+#             return JsonResponse({'error': 'Container ID required'}, status=400)
+
+#         container = client.containers.get(container_id)
+#         container.restart()
+#         return JsonResponse({'status': 'Container restarted successfully'}, status=200)
+
+#     except docker.errors.NotFound:
+#         return JsonResponse({'error': 'Container not found'}, status=404)
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+@csrf_exempt
+def sell_webhook(request):
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body)
+            # Process the payload here
+            print(payload)
+            return JsonResponse({'status': 'success'}, status=200)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'invalid JSON'}, status=400)
+    else:
+        return JsonResponse({'status': 'invalid method'}, status=405)

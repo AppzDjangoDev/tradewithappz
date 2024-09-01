@@ -2,6 +2,7 @@ from . import views
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from account.views import UserRegistrationView
+# from account.views import restart_container
 
 urlpatterns = [
     # landing page
@@ -21,6 +22,8 @@ urlpatterns = [
     path('api/logout/', views.api_logout, name='api_logout'),
     path('api/csrf-token/', views.csrf_token_view, name='csrf-token'),
     path('api/fetch-trade-configurations/', views.fetch_trade_configurations, name='fetch_trade_configurations'),
+    # path('restart-container/', restart_container, name='restart_container'),
+    path('sell-webhook/', views.sell_webhook, name='sell_webhook'),
     
 
 
