@@ -16,10 +16,10 @@ RUN pip install --upgrade pip \
 # Copy project and scripts
 COPY . /code/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY update_ngrok_link.sh /usr/local/bin/update_ngrok_link.sh
+# COPY update_ngrok_link.sh /usr/local/bin/update_ngrok_link.sh
 
 # Make scripts executable
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/update_ngrok_link.sh
+# RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/update_ngrok_link.sh
 
 # Install curl, unzip, gnupg, and jq
 RUN apt-get update && \

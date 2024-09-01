@@ -47,6 +47,7 @@ def brokerconnect(request, app=None):
     client_id = settings.FYERS_APP_ID
     secret_key = settings.FYERS_SECRET_ID
     redirect_uri = settings.FYERS_REDIRECT_URL + "/dashboard"
+    grant_type = "authorization_code"    
     response_type = "code"
     state = "sample_state"
     
@@ -61,6 +62,9 @@ def brokerconnect(request, app=None):
     
     # Generate the auth code URL
     response = session.generate_authcode()
+
+    print('redirect_uriredirect_uri', redirect_uri)
+    print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>', response)
     
     # If 'app' is provided, return the generated URL; otherwise, redirect to it
     if app:

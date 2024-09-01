@@ -7,7 +7,7 @@ ngrok http 8000 &
 sleep 10
 
 # Update the .env file with the ngrok URL
-/usr/local/bin/update_ngrok_link.sh
+# /usr/local/bin/update_ngrok_link.sh
 
 # Start the Django application
 exec python manage.py runserver 0.0.0.0:8000
