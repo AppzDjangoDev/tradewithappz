@@ -25,7 +25,7 @@ class FyersPositionDataConsumer(WebsocketConsumer):
         self.app_id = settings.FYERS_APP_ID
         secret_key = settings.FYERS_SECRET_ID
         app_id_hash = self.generate_app_id_hash(self.app_id, secret_key)
-        pin = "2255"
+        pin = "2772"
         session = self.scope["session"]
         refresh_token = session.get("refresh_token")
 
@@ -83,6 +83,7 @@ class FyersPositionDataConsumer(WebsocketConsumer):
         return hash_object.hexdigest()
 
 class FyersIndexDataConsumer(WebsocketConsumer):
+    print('entry______________________________________1')
     def connect(self):
         self.accept()
 
@@ -96,11 +97,14 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         self.app_id = settings.FYERS_APP_ID
         secret_key = settings.FYERS_SECRET_ID
         app_id_hash = self.generate_app_id_hash(self.app_id, secret_key)
-        pin = "2255"
+        pin = "2772"
         session = self.scope["session"]
         refresh_data = CommonConfig.objects.filter(param="refresh_token").first()
         refresh_token = refresh_data.value
         
+        print('refresh_tokenrefresh_tokenrefresh_tokenrefresh_token', refresh_token)
+
+
         url = "https://api-t1.fyers.in/api/v3/validate-refresh-token"
         headers = {
             "Content-Type": "application/json"
@@ -113,6 +117,7 @@ class FyersIndexDataConsumer(WebsocketConsumer):
         }
 
         response = requests.post(url, headers=headers, json=data)
+        print('responseresponseresponseresponse', response)
         if response.status_code == 200:
             json_response = response.json()
             self.access_token = json_response.get("access_token")

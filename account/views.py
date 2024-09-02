@@ -396,6 +396,7 @@ def sell_webhook(request):
         try:
             payload = json.loads(request.body)
             # Process the payload here
+            print('incoming_socket_data')
             print(payload)
             return JsonResponse({'status': 'success'}, status=200)
         except json.JSONDecodeError:

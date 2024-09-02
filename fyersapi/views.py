@@ -50,6 +50,9 @@ def brokerconnect(request, app=None):
     grant_type = "authorization_code"    
     response_type = "code"
     state = "sample_state"
+
+    print('client_idclient_idclient_id', client_id)
+    print('secret_keysecret_key', secret_key)
     
     # Create a session model with the provided credentials
     session = fyersModel.SessionModel(
@@ -115,6 +118,7 @@ def get_accese_token_store_session(request):
     response_type = "code" 
     grant_type = "authorization_code"  
     auth_code = request.session.get('auth_code')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', auth_code)
     # Create a session object to handle the Fyers API authentication and token generation
     session = fyersModel.SessionModel(
         client_id=client_id,
@@ -127,6 +131,7 @@ def get_accese_token_store_session(request):
     session.set_token(auth_code)
     # Generate the access token using the authorization code
     response = session.generate_token()
+    print('responseresponseresponseresponseresponseresponseresponse', response)
     # #print the response, which should contain the access token and other details
     access_token = response.get('access_token')
     refresh_token = response.get('refresh_token')
@@ -141,8 +146,11 @@ def get_accese_token_store_session(request):
                     param='refresh_token',
                     defaults={"value": refresh_token}
                 )
+
+        print('access_tokenaccess_tokenaccess_token', access_token)
+        print('refresh_tokenrefresh_tokenrefresh_tokenrefresh_token', refresh_token)
     else:
-        #print("access_token or refresh_token missing")
+        print("access_token or refresh_token missing")
         pass
     # You can redirect to another page or render a template after #printing
     return redirect('dashboard')  # Assuming 'home' is the name of a URL pattern you want to redirect to
@@ -1040,9 +1048,9 @@ class TransactionHistory(LoginRequiredMixin, View):
         return render(request, 'trading_tool/html/transaction_history.html', context)
 
 
-class OptionChainView(LoginRequiredMixin, View):
+class OptionChainView(View):
     # satheesh
-    login_url = '/login'
+    # login_url = '/login'
 
     def get(self, request, slug):
         context = {}

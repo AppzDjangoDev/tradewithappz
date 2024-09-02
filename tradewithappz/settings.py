@@ -38,10 +38,12 @@ TEST_MODE=os.environ.get('TEST_MODE', default=True)
 # NGROK_URL="https://spacewear.onrender.com"
 if TEST_MODE:
     # DEBUG=True
-    FYERS_APP_ID="5NYKD87NTH-100"
-    FYERS_SECRET_ID="XIXJN6AKI5"
+    # FYERS_APP_ID="5NYKD87NTH-100"
+    # FYERS_SECRET_ID="XIXJN6AKI5"
     # DHAN_CLIENTID = "1101940945"
     # DHAN_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzIzMTgxNzU0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTk0MDk0NSJ9.px-MnVntQ7nGaf4CM99bCZjZEDqHVUwtzqypF3wprKc4OFrBEzijQ0upetf6hfjwzKP3h8opLTarSsjXog-85Q"
+    FYERS_APP_ID="YEP94YHW9H-100"
+    FYERS_SECRET_ID="0FF40H3KHT"
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
